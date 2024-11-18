@@ -1,0 +1,44 @@
+
+@(cumulativeSearchResults: Map[String, List[models.Video]], readabilityScores: Map[String, utils.ReadabilityStats])
+
+@main("") {
+<!-- Search form -->
+<form action="@routes.YoutubeController.search()" method="GET" style="margin-bottom: 20px;">
+    <div style="display: flex; gap: 10px; justify-content: center;">
+        <input type="text" name="searchQuery" placeholder="Search videos..."
+               style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 300px;">
+        <button type="submit" style="padding: 8px; border: none; border-radius: 4px; background-color: #28a745; color: white; cursor: pointer;">
+            Search
+        </button>
+    </div>
+</form>
+
+<!-- Display results for each search query -->
+@for((searchQuery, videos) <- cumulativeSearchResults) {
+<h2>Search results for "@searchQuery"</h2>
+
+<!-- Display average readability scores for the search query -->
+<p>Average Grade Level: @readabilityScores(searchQuery).getAvgGradeLevel()</p>
+<p>Average Reading Ease Score: @readabilityScores(searchQuery).getAvgReadingEaseScore()</p>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px;">
+    @for(video <- videos) {
+    <div style="width: 250px; border: 1px solid #ddd; padding: 10px; border-radius: 8px;">
+        <img src="@video.getThumbnailUrl()" style="width: 100%; border-radius: 8px;">
+        <div style="margin-top: 10px;">
+            <h2 style="font-size: 18px; margin: 5px 0;">
+                <a href="https://www.youtube.com/watch?v=@video.getVideoId()" target="_blank">@video.getTitle()</a>
+            </h2>
+            <p style="font-size: 12px; color: #666;">@video.getDescription()</p>
+
+            <!-- Display individual readability scores -->
+            <p>Flesch-Kincaid Grade Level: @video.getFleschKincaidGradeLevel()</p>
+            <p>Flesch Reading Ease Score: @video.getFleschReadingEaseScore()</p>
+
+            <!-- Display tags as clickable hyperlinks -->
+        </div>
+    </div>
+    }
+</div>
+}
+}
