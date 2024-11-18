@@ -1,18 +1,21 @@
 package controllers;
 
-import play.mvc.Controller;
-import play.mvc.Result;
+import play.mvc.*;
 import javax.inject.Inject;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
+
 import models.Video;
 import services.YoutubeService;
 import utils.ReadabilityCalculator;
 import utils.ReadabilityStats;
+import views.html.*;
 //import utils.WordStats;
 //import utils.sentimentAnalysis;
 
@@ -84,7 +87,7 @@ public class YoutubeController extends Controller {
      * readability scores, and sentiment analysis for the current search query
      * @author Hanieh, Younes, Yazid
      */
-    public Result search(String searchQuery) {
+    public CompletionStage<Result> search(String searchQuery) {
         String sentiment = ":-|"; // Default neutral sentiment
 
         if (searchQuery != null && !searchQuery.isEmpty()) {
@@ -124,7 +127,7 @@ public class YoutubeController extends Controller {
             // sentiment = sentimentAnalysis.analyzeSentiment(newVideos);
         }
 
-        return ok(views.html.search.render(cumulativeSearchResults, readabilityScores));
+        return CompletableFuture.completedFuture(ok(search.render(cumulativeSearchResults, readabilityScores)));
     }
 
     /**

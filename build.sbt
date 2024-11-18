@@ -7,7 +7,10 @@ lazy val root = (project in file(".")).enablePlugins(PlayJava)
 scalaVersion := "2.13.15"
 javacOptions ++= Seq("-source", "11", "-target", "11")
 
-libraryDependencies += guice
+libraryDependencies ++= Seq(
+  guice,
+  "org.apache.pekko" %% "pekko-actor" % "1.0.1" // Match Pekko version
+)
 libraryDependencies += "org.json" % "json" % "20210307"
 libraryDependencies += "org.mockito" % "mockito-core" % "4.0.0" % Test
 libraryDependencies += "junit" % "junit" % "4.13.2" % Test
