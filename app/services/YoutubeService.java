@@ -19,6 +19,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import models.Video;
+import models.Channel;
 
 /**
  * Service to interact with YouTube API, retrieving video and channel information.
@@ -29,7 +30,7 @@ public class YoutubeService {
     private final String apiKey;
     private final String searchURL;
 //    private final String videoDetailsURL;
-//    private final String channelProfileURL;
+    private final String channelProfileURL;
     private final Integer videoCount;
 
     /**
@@ -53,7 +54,7 @@ public class YoutubeService {
         this.apiKey = javaConfig.getString("youtube.api.key");
         this.searchURL = javaConfig.getString("youtube.search.url");
 //        this.videoDetailsURL = javaConfig.getString("youtube.videos.url");
-//        this.channelProfileURL = javaConfig.getString("youtube.channel.profile.url");
+        this.channelProfileURL = javaConfig.getString("youtube.channel.profile.url");
         this.videoCount = javaConfig.getInt("video.count");
     }
 
@@ -280,37 +281,37 @@ public class YoutubeService {
      * @return a Channel object containing profile information, or null if not found
      * @author Adriana
      */
-//    public Channel getChannelProfile(String channelId) {
-//        try {
-//            String urlString = String.format("%s?part=snippet&id=%s&key=%s", this.channelProfileURL, channelId, this.apiKey);
-//            URL url = new URL(urlString);
-//            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-//            conn.setRequestMethod("GET");
-//
-//            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-//            StringBuilder response = new StringBuilder();
-//            String inputLine;
-//            while ((inputLine = in.readLine()) != null) {
-//                response.append(inputLine);
-//            }
-//            in.close();
-//
-//            JSONObject jsonResponse = new JSONObject(response.toString());
-//            JSONArray items = jsonResponse.getJSONArray("items");
-//            if (items.length() > 0) {
-//                JSONObject channelInfo = items.getJSONObject(0).getJSONObject("snippet");
-//
-//                String title = channelInfo.getString("title");
-//                String description = channelInfo.getString("description");
-//                String thumbnailUrl = channelInfo.getJSONObject("thumbnails").getJSONObject("high").getString("url");
-//
-//                return new Channel(channelId, title, description, thumbnailUrl, null);
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        return null;
-//    }
+    public Channel getChannelProfile(String channelId) {
+        try {
+            String urlString = String.format("%s?part=snippet&id=%s&key=%s", this.channelProfileURL, channelId, this.apiKey);
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String inputLine;
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            JSONObject jsonResponse = new JSONObject(response.toString());
+            JSONArray items = jsonResponse.getJSONArray("items");
+            if (items.length() > 0) {
+                JSONObject channelInfo = items.getJSONObject(0).getJSONObject("snippet");
+
+                String title = channelInfo.getString("title");
+                String description = channelInfo.getString("description");
+                String thumbnailUrl = channelInfo.getJSONObject("thumbnails").getJSONObject("high").getString("url");
+
+                return new Channel(channelId, title, description, thumbnailUrl, null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
     /**
      * Searches for videos by channel ID, limiting the number of results to the specified count.
@@ -319,41 +320,41 @@ public class YoutubeService {
      * @return a list of Video objects from the specified channel
      * @author Adriana
      */
-//    public List<Video> searchVideosByChannel(String channelId, int count) {
-//        List<Video> videos = new ArrayList<>();
-//        try {
-//            String urlString = String.format("%s?part=snippet&channelId=%s&maxResults=%d&key=%s",
-//                    this.searchURL, channelId, count, this.apiKey);
-//            URL url = new URL(urlString);
-//            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-//            conn.setRequestMethod("GET");
-//
-//            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-//            StringBuilder response = new StringBuilder();
-//            String inputLine;
-//            while ((inputLine = in.readLine()) != null) {
-//                response.append(inputLine);
-//            }
-//            in.close();
-//
-//            JSONObject jsonResponse = new JSONObject(response.toString());
-//            JSONArray items = jsonResponse.getJSONArray("items");
-//
-//            for (int i = 0; i < items.length(); i++) {
-//                JSONObject video = items.getJSONObject(i);
-//                JSONObject snippet = video.getJSONObject("snippet");
-//
-//                String videoId = video.getJSONObject("id").getString("videoId");
-//                String title = snippet.getString("title");
-//                String thumbnailUrl = snippet.getJSONObject("thumbnails").getJSONObject("high").getString("url");
-//                String description = snippet.getString("description");
-//
-//                videos.add(new Video(thumbnailUrl, title, snippet.getString("channelTitle"), description, videoId, channelId, null));
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        return videos;
-//    }
+    public List<Video> searchVideosByChannel(String channelId, int count) {
+        List<Video> videos = new ArrayList<>();
+        try {
+            String urlString = String.format("%s?part=snippet&channelId=%s&maxResults=%d&key=%s",
+                    this.searchURL, channelId, count, this.apiKey);
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String inputLine;
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            JSONObject jsonResponse = new JSONObject(response.toString());
+            JSONArray items = jsonResponse.getJSONArray("items");
+
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject video = items.getJSONObject(i);
+                JSONObject snippet = video.getJSONObject("snippet");
+
+                String videoId = video.getJSONObject("id").getString("videoId");
+                String title = snippet.getString("title");
+                String thumbnailUrl = snippet.getJSONObject("thumbnails").getJSONObject("high").getString("url");
+                String description = snippet.getString("description");
+
+                videos.add(new Video(thumbnailUrl, title, snippet.getString("channelTitle"), description, videoId, channelId, null));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return videos;
+    }
 
 }

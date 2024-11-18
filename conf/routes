@@ -7,3 +7,4 @@ GET     /assets/*file                   controllers.Assets.versioned(path="/publ
 
 GET     /                               controllers.HomeController.index()
 GET     /search                         controllers.YoutubeController.search(searchQuery: String ?="")
+GET     /channel/:channelId             controllers.YoutubeController.channelProfile(channelId: String)

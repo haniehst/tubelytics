@@ -29,6 +29,10 @@
             <h2 style="font-size: 18px; margin: 5px 0;">
                 <a href="https://www.youtube.com/watch?v=@video.getVideoId()" target="_blank">@video.getTitle()</a>
             </h2>
+            <p style="font-size: 14px; color: #888;">
+                <!-- Local link to channel profile page instead of YouTube -->
+                <a href="@routes.YoutubeController.channelProfile(video.getChannelId())">@video.getChannel()</a>
+            </p>
             <p style="font-size: 12px; color: #666;">@video.getDescription()</p>
 
             <!-- Display individual readability scores -->

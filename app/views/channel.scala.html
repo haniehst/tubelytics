@@ -1,0 +1,99 @@
+@*
+This template renders the profile of a YouTube channel, including recent videos.
+
+Template Parameters:
+- `channel`: An instance of `models.Channel` containing the channel's information.
+- `recentVideos`: A Scala list of `models.Video` objects representing the most recent videos of the channel.
+
+Layout:
+- The template is structured in two main sections:
+1. Channel Profile: Displays the channel title, thumbnail, and description.
+2. Recent Videos: Lists the most recent videos from the channel, including each video's title and thumbnail with links to YouTube.
+
+Styling:
+- Inline CSS styles are included to control the layout, font sizes, colors, and hover effects on video titles.
+
+@version 1.0
+@since 2024-11-04
+*@
+@(channel: models.Channel, recentVideos: scala.collection.immutable.List[models.Video])
+
+@main("Channel Profile") {
+<section class="channel-profile">
+    <header>
+        <h1>@channel.getTitle()</h1>
+        <img src="@channel.getThumbnailUrl()" alt="Channel Thumbnail" class="channel-thumbnail"/>
+    </header>
+    <p class="channel-description">@channel.getDescription()</p>
+</section>
+
+<section class="recent-videos">
+    <h2>Recent Videos</h2>
+    <ul class="video-list">
+        @for(video <- recentVideos) {
+        <li class="video-item">
+            <a href="https://www.youtube.com/watch?v=@video.getVideoId()" target="_blank" class="video-link">
+                <img src="@video.getThumbnailUrl()" alt="Video Thumbnail" class="video-thumbnail"/>
+                <span class="video-title">@video.getTitle()</span>
+            </a>
+        </li>
+        }
+    </ul>
+</section>
+}
+
+<style>
+    .channel-profile {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .channel-thumbnail {
+        max-width: 200px;
+        border-radius: 10px;
+    }
+
+    .channel-description {
+        font-size: 1.1em;
+        color: #555;
+        margin-top: 10px;
+    }
+
+    .recent-videos {
+        margin-top: 30px;
+    }
+
+    .video-list {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .video-item {
+        width: 200px;
+        text-align: center;
+    }
+
+    .video-link {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .video-thumbnail {
+        width: 100%;
+        border-radius: 5px;
+        margin-bottom: 5px;
+    }
+
+    .video-title {
+        font-weight: bold;
+        font-size: 0.9em;
+        color: #333;
+    }
+
+    .video-title:hover {
+        color: #0073e6;
+    }
+</style>

@@ -2,6 +2,7 @@ package controllers;
 
 import play.mvc.*;
 import javax.inject.Inject;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.HashMap;
@@ -9,9 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
-
+import scala.jdk.javaapi.CollectionConverters;
 
 import models.Video;
+import models.Channel;
 import services.YoutubeService;
 import utils.ReadabilityCalculator;
 import utils.ReadabilityStats;
@@ -181,4 +183,24 @@ public class YoutubeController extends Controller {
 //            return notFound("Video not found");
 //        }
 //    }
+
+    public Result channelProfile(String channelId) {
+        try {
+            Channel channel = youtubeService.getChannelProfile(channelId);
+            if (channel == null) {
+                return notFound("Channel not found");
+            }
+
+            // Fetch last 10 videos for the channel, handle null video list
+            List<Video> recentVideos = youtubeService.searchVideosByChannel(channelId, 10);
+            scala.collection.immutable.List<Video> scalaRecentVideos = CollectionConverters.asScala(
+                    recentVideos != null ? recentVideos : Collections.emptyList()
+            ).toList();
+
+            return ok(views.html.channel.render(channel, scalaRecentVideos));
+        } catch (Exception e) {
+            // Catch any exception from YoutubeService and return NOT_FOUND with error message
+            return notFound("Channel not found due to service error.");
+        }
+    }
 }
