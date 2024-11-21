@@ -1,6 +1,6 @@
 # Advanced Programming Practices: TubeLytics
 
-Welcome to the **Advanced Programming Practices** course project by **Team 400 Bad Request**! This repository contains the implementation and documentation of our project.
+Welcome to the **Advanced Programming Practices** course project by **Team 400 Bad Request** (Divided)! This repository contains the implementation and documentation of our project.
 
 
 ## Installation
