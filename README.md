@@ -40,7 +40,7 @@ After starting the project, you can access the application via `localhost:9000` 
 
 **Note**: The project is developed using [JDK 17](https://jdk.java.net/17/). Please ensure JDK 17 is installed for compatibility.
 
-## Team 400 Bad Request (Devided)
+## Team 400 Bad Request (Divided)
 
 - **Hanieh Salmantaheri**
 - **Adriana Lilia Guevara Contreras**
