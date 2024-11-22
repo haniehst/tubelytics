@@ -12,51 +12,23 @@ import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 import scala.jdk.javaapi.CollectionConverters;
 
-import models.Video;
-import models.Channel;
+import models.*;
 import services.YoutubeService;
-import utils.ReadabilityCalculator;
-import utils.ReadabilityStats;
+import utils.*;
 import views.html.*;
-//import utils.WordStats;
-//import utils.sentimentAnalysis;
+
 
 /**
  * Controller class for handling YouTube-related operations.
- * <p>This class interacts with the YouTube service to perform video searches,
- * sentiment analysis, and readability analysis, storing cumulative results across requests.</p>
- *
- * @author Hanieh, Younes, Yazid, Rafi
+ * <p>This class interacts with the YouTube service to perform video searches. </p>
+ * @version 2.0.0
+ * @author Hanieh, Adriana
  */
 public class YoutubeController extends Controller {
 
-    /**
-     * Stores cumulative search results across multiple search requests.
-     * <p>Each entry in the map is a search term and its associated list of videos.</p>
-     */
-    private Map<String, List<Video>> cumulativeSearchResults = new LinkedHashMap<>();
-
-    /**
-     * Stores readability scores for search results.
-     * <p>Each entry in the map corresponds to a search term and its readability statistics.</p>
-     */
-    private Map<String, ReadabilityStats> readabilityScores = new LinkedHashMap<>();
-
-    /**
-     * Service for interacting with the YouTube API and performing video-related operations.
-     */
+    private final LinkedHashMap<String, List<Video>> cachedResults = new LinkedHashMap<>();
     private final YoutubeService youtubeService;
-
-    /**
-     * Service for performing sentiment analysis on video content or search results.
-     */
-//    private final sentimentAnalysis sentimentAnalysis;
-
-    /**
-     * Cache for storing the latest search results.
-     * <p>Each entry in the map corresponds to a search term and its associated list of videos.</p>
-     */
-    private Map<String, List<Video>> latestSearchResults = new HashMap<>();
+    private Map<String, ReadabilityStats> readabilityScores = new LinkedHashMap<>();
 
     /**
      * Constructs a new YoutubeController with the specified YouTube service.
@@ -67,69 +39,61 @@ public class YoutubeController extends Controller {
     @Inject
     public YoutubeController(YoutubeService youtubeService) {
         this.youtubeService = youtubeService;
-//        this.sentimentAnalysis = new sentimentAnalysis();
     }
 
-    /**
-     * Getter for cumulativeSearchResults, used for testing purposes.
-     *
-     * @return a map containing the cumulative search results
-     */
-    public Map<String, List<Video>> getCumulativeSearchResults() {
-        return cumulativeSearchResults;
-    }
-
-    /**
-     * Searches for YouTube videos based on the provided query and updates relevant data structures with the results.
-     * <p>The method retrieves up to 10 videos related to the search query, calculates readability scores,
-     * and performs sentiment analysis on the results.</p>
-     *
-     * @param searchQuery the query string used to search for YouTube videos
-     * @return a Result rendering the search results view with updated cumulative search results,
-     * readability scores, and sentiment analysis for the current search query
-     * @author Hanieh, Younes, Yazid
-     */
     public CompletionStage<Result> search(String searchQuery) {
-        String sentiment = ":-|"; // Default neutral sentiment
-
-        if (searchQuery != null && !searchQuery.isEmpty()) {
-            List<Video> newVideos;
-            boolean isCached = false;
-            // Check if the result is already cached in latestSearchResults
-            if (latestSearchResults.containsKey(searchQuery)) {
-                isCached = true;
-                newVideos = latestSearchResults.get(searchQuery);
-            } else {
-                newVideos = this.youtubeService.searchVideos(searchQuery);
-                latestSearchResults.put(searchQuery, newVideos); // Cache the result
-            }
-            // Limit the list to the first 10 videos
-            List<Video> top10Videos = newVideos.stream().limit(10).collect(Collectors.toList());
-
-            // Set readability scores in Video objects
-            ReadabilityCalculator.calculateReadabilityScores(newVideos);
-            // Calculate and store the average readability stats for this search query
-            ReadabilityStats stats = ReadabilityCalculator.calculateAverageReadabilityStats(newVideos);
-            readabilityScores.put(searchQuery, stats);
-
-            // Remove the query if it already exists to reorder it
-            if (cumulativeSearchResults.containsKey(searchQuery) && !isCached) {
-                cumulativeSearchResults.remove(searchQuery);
-                // Remove old readability scores as well
-                readabilityScores.remove(searchQuery);
-            }
-
-            // Insert the query and its results at the front (newest first)
-            Map<String, List<Video>> newCumulativeResults = new LinkedHashMap<>();
-            newCumulativeResults.put(searchQuery, top10Videos); // Add the new query first
-            newCumulativeResults.putAll(cumulativeSearchResults); // Add the rest after
-            cumulativeSearchResults = newCumulativeResults;
-
-            // Analyze sentiment of the videos
-            // sentiment = sentimentAnalysis.analyzeSentiment(newVideos);
+        if (searchQuery == null || searchQuery.isEmpty()) {
+            return CompletableFuture.completedFuture(ok(search.render(Helper.reverseMap(cachedResults), readabilityScores)));
         }
 
-        return CompletableFuture.completedFuture(ok(search.render(cumulativeSearchResults, readabilityScores)));
+        List<Video> videos;
+        // Check if the result is already cached
+        if (cachedResults.containsKey(searchQuery)) {
+            videos = cachedResults.get(searchQuery);
+            // Move this query to the front to indicate it's the newest
+            cachedResults.remove(searchQuery);
+        } else {
+            // Call the YoutubeService for new results
+            videos = youtubeService.searchVideos(searchQuery).stream()
+                    .limit(10) // Limit to the first 10 videos
+                    .collect(Collectors.toList());
+        }
+
+        // Add the query and its results to the front
+        cachedResults.put(searchQuery, videos);
+        readabilityScores.put(searchQuery, getReadabilityStats(videos));
+
+        return CompletableFuture.completedFuture(ok(search.render(Helper.reverseMap(cachedResults), readabilityScores)));
+    }
+
+    public Result channelProfile(String channelId) {
+        try {
+            Channel channel = youtubeService.getChannelProfile(channelId);
+            if (channel == null) {
+                return notFound("Channel not found");
+            }
+
+            // Fetch last 10 videos for the channel, handle null video list
+            List<Video> recentVideos = youtubeService.searchVideosByChannel(channelId, 10);
+            scala.collection.immutable.List<Video> scalaRecentVideos = CollectionConverters.asScala(
+                    recentVideos != null ? recentVideos : Collections.emptyList()
+            ).toList();
+
+            return ok(views.html.channel.render(channel, scalaRecentVideos));
+        } catch (Exception e) {
+            // Catch any exception from YoutubeService and return NOT_FOUND with error message
+            return notFound("Channel not found due to service error.");
+        }
+    }
+
+    /**
+     * @param videos
+     * @return ReadabilityStats
+     * @author Hanieh
+     */
+    private ReadabilityStats getReadabilityStats(List<Video> videos){
+        ReadabilityCalculator.calculateReadabilityScores(videos);
+        return ReadabilityCalculator.calculateAverageReadabilityStats(videos);
     }
 
     /**
@@ -183,24 +147,4 @@ public class YoutubeController extends Controller {
 //            return notFound("Video not found");
 //        }
 //    }
-
-    public Result channelProfile(String channelId) {
-        try {
-            Channel channel = youtubeService.getChannelProfile(channelId);
-            if (channel == null) {
-                return notFound("Channel not found");
-            }
-
-            // Fetch last 10 videos for the channel, handle null video list
-            List<Video> recentVideos = youtubeService.searchVideosByChannel(channelId, 10);
-            scala.collection.immutable.List<Video> scalaRecentVideos = CollectionConverters.asScala(
-                    recentVideos != null ? recentVideos : Collections.emptyList()
-            ).toList();
-
-            return ok(views.html.channel.render(channel, scalaRecentVideos));
-        } catch (Exception e) {
-            // Catch any exception from YoutubeService and return NOT_FOUND with error message
-            return notFound("Channel not found due to service error.");
-        }
-    }
 }

@@ -1,5 +1,5 @@
 
-@(cumulativeSearchResults: Map[String, List[models.Video]], readabilityScores: Map[String, utils.ReadabilityStats])
+@(cachedResults: Map[String, List[models.Video]], readabilityScores: Map[String, utils.ReadabilityStats])
 
 @main("") {
 <!-- Search form -->
@@ -14,7 +14,7 @@
 </form>
 
 <!-- Display results for each search query -->
-@for((searchQuery, videos) <- cumulativeSearchResults) {
+@for((searchQuery, videos) <- cachedResults) {
 <h2>Search results for "@searchQuery"</h2>
 
 <!-- Display average readability scores for the search query -->
