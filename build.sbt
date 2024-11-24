@@ -18,6 +18,22 @@ libraryDependencies += "edu.stanford.nlp" % "stanford-corenlp" % "4.4.0"
 libraryDependencies += "edu.stanford.nlp" % "stanford-corenlp" % "4.4.0" classifier "models"
 libraryDependencies += "org.apache.commons" % "commons-text" % "1.12.0"
 
+// The newer Akka version you want to use.
+val akkaVersion = "2.6.20"
+
+// Akka dependencies used by Play
+libraryDependencies ++= Seq(
+  "com.typesafe.akka" %% "akka-actor"                 % akkaVersion,
+  "com.typesafe.akka" %% "akka-actor-typed"           % akkaVersion,
+  "com.typesafe.akka" %% "akka-stream"                % akkaVersion,
+  "com.typesafe.akka" %% "akka-slf4j"                 % akkaVersion,
+  "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,
+  "com.typesafe.akka" %% "akka-stream-typed" % akkaVersion,
+
+  // Only if you are using Akka Testkit
+  "com.typesafe.akka" %% "akka-testkit" % akkaVersion
+)
+
 // Set Javadoc options to include private members
 doc / javacOptions ++= Seq("-private")
 
