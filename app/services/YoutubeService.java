@@ -320,6 +320,43 @@ public class YoutubeService {
      * @return a list of Video objects from the specified channel
      * @author Adriana
      */
+//    public List<Video> searchVideosByChannel(String channelId, int count) {
+//        List<Video> videos = new ArrayList<>();
+//        try {
+//            String urlString = String.format("%s?part=snippet&channelId=%s&maxResults=%d&key=%s",
+//                    this.searchURL, channelId, count, this.apiKey);
+//            URL url = new URL(urlString);
+//            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+//            conn.setRequestMethod("GET");
+//
+//            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+//            StringBuilder response = new StringBuilder();
+//            String inputLine;
+//            while ((inputLine = in.readLine()) != null) {
+//                response.append(inputLine);
+//            }
+//            in.close();
+//
+//            JSONObject jsonResponse = new JSONObject(response.toString());
+//            JSONArray items = jsonResponse.getJSONArray("items");
+//
+//            for (int i = 0; i < items.length(); i++) {
+//                JSONObject video = items.getJSONObject(i);
+//                JSONObject snippet = video.getJSONObject("snippet");
+//
+//                String videoId = video.getJSONObject("id").getString("videoId");
+//                String title = snippet.getString("title");
+//                String thumbnailUrl = snippet.getJSONObject("thumbnails").getJSONObject("high").getString("url");
+//                String description = snippet.getString("description");
+//
+//                videos.add(new Video(thumbnailUrl, title, snippet.getString("channelTitle"), description, videoId, channelId, null));
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        return videos;
+//    }
+//
     public List<Video> searchVideosByChannel(String channelId, int count) {
         List<Video> videos = new ArrayList<>();
         try {
@@ -344,17 +381,30 @@ public class YoutubeService {
                 JSONObject video = items.getJSONObject(i);
                 JSONObject snippet = video.getJSONObject("snippet");
 
-                String videoId = video.getJSONObject("id").getString("videoId");
-                String title = snippet.getString("title");
-                String thumbnailUrl = snippet.getJSONObject("thumbnails").getJSONObject("high").getString("url");
-                String description = snippet.getString("description");
+                // Handle missing videoId
+                String videoId = video.optJSONObject("id") != null
+                        ? video.getJSONObject("id").optString("videoId", null)
+                        : null;
+                if (videoId == null) {
+                    // Log missing videoId for debugging
+                    System.out.println("Missing videoId for item: " + video.toString());
+                }
 
-                videos.add(new Video(thumbnailUrl, title, snippet.getString("channelTitle"), description, videoId, channelId, null));
+                String title = snippet.optString("title", "Untitled");
+                String thumbnailUrl = snippet.optJSONObject("thumbnails") != null
+                        ? snippet.getJSONObject("thumbnails").getJSONObject("high").optString("url", null)
+                        : null;
+                String description = snippet.optString("description", null);
+
+                videos.add(new Video(thumbnailUrl, title, snippet.optString("channelTitle", "Unknown"),
+                        description, videoId, channelId, null));
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
         return videos;
     }
+
+
 
 }
