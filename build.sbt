@@ -18,6 +18,8 @@ libraryDependencies ++= Seq(
   "org.apache.commons" % "commons-text" % "1.12.0"
 )
 
+libraryDependencies += "com.google.code.gson" % "gson" % "2.8.9"
+
 // Set Javadoc options to include private members
 doc / javacOptions ++= Seq("-private")
 

@@ -8,3 +8,5 @@ GET     /                               controllers.HomeController.index()
 GET     /search                         controllers.YoutubeController.search(searchQuery: String ?="")
 GET     /channel/:channelId             controllers.YoutubeController.channelProfile(channelId: String)
 GET     /ws/stream/                     controllers.WebSocketController.stream()
+
+GET     /websocket          controllers.HomeController.websocketPage()
