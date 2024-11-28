@@ -27,4 +27,8 @@ public class HomeController extends Controller {
     public CompletionStage<Result> index() {
         return CompletableFuture.completedFuture(ok(index.render()));
     }
+
+    public CompletionStage<Result> websocketPage() {
+        return CompletableFuture.completedFuture(ok(views.html.websocket.render()));
+    }
 }

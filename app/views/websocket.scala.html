@@ -1,0 +1,155 @@
+
+@main("TubeLytics WebSocket Search") {
+
+<style>
+    body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f4f4f9;
+        color: #333;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh; /* Adjusted for small screens */
+    }
+    .search-container {
+        width: 90%;
+        max-width: 600px;
+        background-color: #fff;
+        padding: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        border-radius: 8px;
+    }
+    input[type="text"] {
+        width: calc(100% - 22px);
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+    .button {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        text-decoration: none;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background-color 0.3s, box-shadow 0.3s;
+    }
+    .button:hover {
+        background-color: #218838;
+    }
+    .results {
+        margin-top: 20px;
+        text-align: left;
+        word-wrap: break-word;
+    }
+
+</style>
+
+<div class="search-container">
+    <h1>TubeLytics Search</h1>
+    <input id="searchQuery" type="text" placeholder="Enter your search query" />
+    <button class="button" id="searchButton">Search</button>
+    <div class="results" id="results"></div>
+</div>
+
+
+<script>
+    const resultsDiv = document.getElementById("results");
+    const searchButton = document.getElementById("searchButton");
+    const searchQueryInput = document.getElementById("searchQuery");
+    const socket = new WebSocket("@routes.WebSocketController.stream()");
+
+    // Function to render video results
+    const renderResults = (videos) => {
+        if (videos && Array.isArray(videos)) {
+            resultsDiv.innerHTML = "<h3>Results:</h3>";
+            videos.forEach(video => {
+                const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`; // Construct video URL
+                resultsDiv.innerHTML += `
+    <div>
+        <img src="${video.thumbnailUrl}" alt="${video.title}" style="width:120px;height:90px;"><br>
+        <strong>${video.title}</strong><br>
+        <a href="${videoUrl}" target="_blank">Watch</a><br>
+        <small>Channel: ${video.channel}</small><br>
+        <p>${video.description}</p>
+    </div>
+    <hr>`;
+            });
+        } else {
+            resultsDiv.innerHTML = "<p>No videos found.</p>";
+        }
+    };
+
+    // Function to handle errors
+    const showError = (message) => {
+        resultsDiv.innerHTML = `<p class="error">${message}</p>`;
+    };
+
+    // WebSocket message event handler
+    socket.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.error) {
+                console.warn("Server error:", data.error);
+                showError(`Server error: ${data.error}`);
+            } else if (data.videos) {
+                renderResults(data.videos);
+            } else {
+                console.warn("Unexpected WebSocket message format:", data);
+                showError("Unexpected response from server.");
+            }
+        } catch (error) {
+            console.error("Error parsing WebSocket message:", error);
+            showError("Invalid data received.");
+        }
+    };
+
+    searchButton.addEventListener("click", () => {
+        const query = searchQueryInput.value.trim();
+        if (query) {
+            if (socket.readyState === WebSocket.OPEN) {
+                const payload = JSON.stringify({ query }); // Create payload
+                console.log("Sending WebSocket message:", payload); // Debugging
+                socket.send(payload);
+                resultsDiv.innerHTML = "<p>Searching...</p>";
+            } else {
+                alert("WebSocket connection is not open.");
+            }
+        } else {
+            alert("Please enter a search query.");
+        }
+    });
+
+    // Handle WebSocket close event
+    socket.onclose = (event) => {
+        console.warn("WebSocket connection closed:", event);
+        resultsDiv.innerHTML = "<p>Connection closed by the server.</p>";
+    };
+
+    // Handle WebSocket errors
+    socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        showError("An error occurred. Please try again later.");
+    };
+
+    // Handle WebSocket open event
+    socket.onopen = () => {
+        console.log("WebSocket connection established.");
+        resultsDiv.innerHTML = "<p>WebSocket connection established. Ready to search!</p>";
+    };
+
+    // Optional: Handle search query input "Enter" key press
+    searchQueryInput.addEventListener("keypress", (event) => {
+        if (event.key === "Enter") {
+            searchButton.click();
+        }
+    });
+</script>
+}

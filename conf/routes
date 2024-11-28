@@ -1,6 +1,5 @@
 # Routes
 # This file defines all application routes (Higher priority routes first)
-# ~~~~
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file                   controllers.Assets.versioned(path="/public", file: Asset)
@@ -8,3 +7,6 @@ GET     /assets/*file                   controllers.Assets.versioned(path="/publ
 GET     /                               controllers.HomeController.index()
 GET     /search                         controllers.YoutubeController.search(searchQuery: String ?="")
 GET     /channel/:channelId             controllers.YoutubeController.channelProfile(channelId: String)
+GET     /ws/stream/                     controllers.WebSocketController.stream()
+
+GET     /websocket          controllers.HomeController.websocketPage()
