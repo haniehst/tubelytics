@@ -177,3 +177,4 @@ server.pid
 .DS_Store
 .idea
 .bsp
+.g8
