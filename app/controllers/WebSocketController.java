@@ -66,14 +66,14 @@ public class WebSocketController extends Controller {
 
             // Sink to forward messages from WebSocket to ParentActor
             Sink<JsonNode, ?> sink = Sink.foreach(jsonNode -> {
-                System.out.println("WebSocketController received message: " + jsonNode);
+                System.out.println("[WebSocketController] received message: " + jsonNode);
                 parentActor.tell(jsonNode, ActorRef.noSender());
             });
 
             // Source for outgoing WebSocket messages
             Source<JsonNode, ActorRef> source = Source.<JsonNode>actorRef(10, OverflowStrategy.dropHead())
                     .mapMaterializedValue(clientActor -> {
-                        System.out.println("WebSocketController: Source actor created.");
+                        System.out.println("[WebSocketController]: Source actor created.");
                         parentActor.tell(clientActor, ActorRef.noSender());
                         return clientActor;
                     });
