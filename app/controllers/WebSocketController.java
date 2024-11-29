@@ -63,7 +63,7 @@ public class WebSocketController extends Controller {
     private CompletionStage<F.Either<Result, Flow<JsonNode, JsonNode, ?>>> createActorBasedFlow(Http.RequestHeader request) {
         try {
             ActorRef parentActor = actorSystem.actorOf(Props.create(ParentActor.class, () -> new ParentActor(youtubeService)));
-
+            System.out.println("[WebSocketController] ParentActor Created");
             // Sink to forward messages from WebSocket to ParentActor
             Sink<JsonNode, ?> sink = Sink.foreach(jsonNode -> {
                 System.out.println("[WebSocketController] received message: " + jsonNode);
@@ -73,7 +73,6 @@ public class WebSocketController extends Controller {
             // Source for outgoing WebSocket messages
             Source<JsonNode, ActorRef> source = Source.<JsonNode>actorRef(10, OverflowStrategy.dropHead())
                     .mapMaterializedValue(clientActor -> {
-                        System.out.println("[WebSocketController]: Source actor created.");
                         parentActor.tell(clientActor, ActorRef.noSender());
                         return clientActor;
                     });

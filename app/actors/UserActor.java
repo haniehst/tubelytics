@@ -6,81 +6,80 @@ import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 
-import java.util.LinkedHashMap;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import models.*;
 import services.*;
+import actors.SearchActor;
+import actors.ChannelActor;
 
 
 /**
- * Each UserActor handles one user’s WebSocket connection.
- * It stores the user’s search history and sends results to the WebSocket.
+ * Handles user-specific logic, including search history and interacting with YoutubeService.
  */
 public class UserActor extends AbstractActor {
 
-    private final Map<String, List<Video>> searchHistory = new LinkedHashMap<>();
-    private final String userId;
+    private ActorRef clientActor; // Client Actor Reference
+    private YoutubeService youtubeService;
+    private final ActorRef searchActor; // SearchActor Reference
+    private final ActorRef channelActor; // ChannelActor Reference
+    private final List<String> searchHistory = new ArrayList<>(); // Store user search history
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
 
-
-    public UserActor(String userId) {
-        this.userId = userId;
+    /**
+     * Constructs a UserActor with the given YoutubeService.
+     *
+     * @param youtubeService Service for interacting with the YouTube API.
+     */
+    public UserActor(YoutubeService youtubeService) {
+        this.youtubeService = youtubeService;
+        this.searchActor = getContext().actorOf(Props.create(SearchActor.class, youtubeService), "searchActor");
+        this.channelActor = getContext().actorOf(Props.create(ChannelActor.class, youtubeService), "channelActor");
     }
 
-    @Override
-    public void preStart() {
-        log.info("Starting UserActor {}", this);
-    }
-
-    @Override
-    public void postStop() {
-        log.info("Stopping UserActor {}", this);
-    }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(SearchQuery.class, this::onSearchQuery)
-                .match(SearchResult.class, this::onSearchResult)
+                .match(ActorRef.class, this::onClientRegistered) // Handle client registration
+                .match(JsonNode.class, this::onClientQuery)
+                .matchAny(this::onUnknownMessage)
                 .build();
     }
 
-    private void onSearchQuery(SearchQuery query) {
-        // Store search query in history and notify parent
-        getSender().tell(new SearchResult(query.query, List.of()), self()); // Replace with actual search results
+    private void onClientRegistered(ActorRef clientActor) {
+        this.clientActor = clientActor;
     }
 
-    private void onSearchResult(SearchResult result) {
-        searchHistory.putIfAbsent(result.query, result.videos);
-    }
+    private void onClientQuery(JsonNode jsonPayload) {
+        if (clientActor == null) {
+            System.out.println("[UserActor] Client ActorRef is not registered. Cannot send messages.");
+            return;
+        }
 
-    public static Props props(String userId) {
-        return Props.create(UserActor.class, () -> new UserActor(userId));
-    }
+        if (jsonPayload.has("query")) {
+            // Forward to SearchActor
+            String query = jsonPayload.get("query").asText();
+            System.out.println("[UserActor] Forwarding search query to SearchActor: " + query);
+            searchActor.tell(jsonPayload, getSelf());
 
-    public static class SearchQuery {
-        public final String query;
+        } else if (jsonPayload.has("channelId")) {
+            // Forward to ChannelActor
+            System.out.println("[UserActor] Forwarding channel operation to ChannelActor");
+            channelActor.tell(jsonPayload, getSelf());
 
-        public SearchQuery(String query) {
-            this.query = query;
+        } else if (jsonPayload.has("videos")){
+            clientActor.tell(jsonPayload, getSelf());
+
+        }
+        else {
+            System.out.println("[UserActor] Invalid JSON payload received!");
         }
     }
 
-    public static class SearchResult {
-        public final String query;
-        public final List<Video> videos;
-
-        public SearchResult(String query, List<Video> videos) {
-            this.query = query;
-            this.videos = videos;
-        }
-    }
-
-    public static class Factory {
-        public Props create(String userId) {
-            return UserActor.props(userId);
-        }
+    private void onUnknownMessage(Object message) {
+        System.err.println("[UserActor] Received unknown message type: " + message.getClass());
     }
 }

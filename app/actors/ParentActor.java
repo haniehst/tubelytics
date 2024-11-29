@@ -2,14 +2,19 @@ package actors;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Props;
+import akka.actor.OneForOneStrategy;
+import akka.actor.SupervisorStrategy;
+import static akka.actor.SupervisorStrategy.restart;
+import static akka.actor.SupervisorStrategy.stop;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import models.Video;
+import scala.concurrent.duration.Duration;
 import play.libs.Json;
-import services.YoutubeService;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import services.YoutubeService;
+import models.Video;
+import actors.UserActor;
+
 
 /**
  * Handles WebSocket communication and processes client requests for YouTube data.
@@ -17,7 +22,8 @@ import java.util.stream.Collectors;
 public class ParentActor extends AbstractActor {
 
     private final YoutubeService youtubeService;
-    private ActorRef clientActor;
+    private final ActorRef userActor; // Child Actor Reference
+    private ActorRef searchActor; // Reference to SearchActor (grandchild)
 
     /**
      * Constructs a ParentActor with the given YoutubeService.
@@ -26,21 +32,29 @@ public class ParentActor extends AbstractActor {
      */
     public ParentActor(YoutubeService youtubeService) {
         this.youtubeService = youtubeService;
+        this.userActor = getContext().actorOf(Props.create(UserActor.class, youtubeService), "userActor");
+
     }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder()
                 .match(ActorRef.class, this::onClientActorRegistered) // Register client ActorRef
-                .match(JsonNode.class, this::onClientQuery) // Handle JSON messages from the client
+                .match(JsonNode.class, this::onForwardToUserActor) // Handle SearchQueryMessage from client
                 .match(String.class, this::onLifecycleMessage) // Handle lifecycle messages
                 .matchAny(this::onUnknownMessage) // Handle unknown messages
                 .build();
     }
 
-    private void onClientActorRegistered(ActorRef actorRef) {
-        this.clientActor = actorRef; // Store the ActorRef for later use
-        System.out.println("[ParentActor] Registered client ActorRef: " + actorRef);
+    private void onClientActorRegistered(ActorRef clientActor) {
+        userActor.tell(clientActor, getSelf());
+    }
+
+
+    private void onForwardToUserActor(JsonNode clientMessage) {
+        System.out.println("[ParentActor] Forwarding client message to UserActor: " + clientMessage);
+        // Forward message to UserActor
+        userActor.tell(clientMessage, getSelf());
     }
 
     /**
@@ -63,35 +77,6 @@ public class ParentActor extends AbstractActor {
         }
     }
 
-    /**
-     * Handles client search queries sent as JSON payloads.
-     *
-     * @param jsonPayload The JSON payload from the client.
-     */
-    private void onClientQuery(JsonNode jsonPayload) {
-        if (clientActor == null) {
-            System.err.println("[ParentActor] Client ActorRef is not registered. Cannot send messages.");
-            return;
-        }
-
-        if (jsonPayload.has("query")) {
-            String query = jsonPayload.get("query").asText();
-            System.out.println("[ParentActor] Received search query: " + query);
-
-            List<Video> videos = youtubeService.searchVideos(query).stream()
-                    .limit(10) // Limit to the first 10 results
-                    .collect(Collectors.toList());
-
-            ObjectNode searchResult = Json.newObject();
-            searchResult.put("searchQuery", query);
-            searchResult.set("videos", Json.toJson(videos));
-
-            System.out.println("[ParentActor] Sending search results to client: " + searchResult);
-            clientActor.tell(searchResult, getSelf());
-        } else {
-            System.err.println("[ParentActor] Invalid JSON payload: " + jsonPayload);
-        }
-    }
 
     /**
      * Handles unknown messages received by the actor.
@@ -101,4 +86,22 @@ public class ParentActor extends AbstractActor {
     private void onUnknownMessage(Object message) {
         System.err.println("[ParentActor] Received unknown message type: " + message.getClass());
     }
+
+//    @Override
+//    public SupervisorStrategy supervisorStrategy() {
+//        return new OneForOneStrategy(
+//                10, // Max retries within the time window
+//                Duration.create(1, "minute"), // Time window for retries
+//                throwable -> {
+//                    if (throwable instanceof IllegalArgumentException) {
+//                        log.error("Stopping actor due to invalid input: {}", throwable.getMessage());
+//                        return stop();
+//                    } else {
+//                        log.warning("Restarting actor due to recoverable failure: {}", throwable.getMessage());
+//                        return restart();
+//                    }
+//                }
+//        );
+//    }
+
 }
