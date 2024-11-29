@@ -33,7 +33,7 @@ public class UserActor extends AbstractActor {
     public Receive createReceive() {
         return receiveBuilder()
                 .match(SupervisorActor.AssignSocket.class, this::onSocketAssigned)
-                .match(SearchQuery.class, this::onSearchQuery)
+                .match(ClientMessage.class, this::onClientMessage)
                 .match(ObjectNode.class, this::onSearchResult)
                 .match(ActorRef.class, this::onClientActorRegistered)// Handle client actor registration
                 .matchAny(this::onUnknownMessage)
@@ -50,32 +50,47 @@ public class UserActor extends AbstractActor {
         System.out.println("[UserActor] Client ActorRef registered: " + clientActor);
     }
 
-    private void onSearchQuery(SearchQuery query) {
-        System.out.println("[UserActor] User " + userId + " queried: " + query.getQuery());
-        searchActor.tell(new SearchActor.SearchTask(query.getQuery(), getSelf()), getSelf());
+    private void onClientMessage(ClientMessage query) {
+        String modifiedQuery = query.getQuery().substring(7);
+
+        if (query.getQuery().startsWith("search")) {
+            System.out.println("[UserActor] User " + userId + " queried: " + query.getQuery());
+            searchActor.tell(new SearchActor.SearchTask(modifiedQuery, getSelf()), getSelf());
+        }
+
+        else if (query.getQuery().startsWith("chanel")) {
+            System.out.println("[UserActor] User " + userId + " queried: " + query.getQuery());
+            //channelActor.tell(new ChannelActor.GetProfile(modifiedQuery, getSelf()), getSelf());
+        }
+
+        else {
+            System.err.println("[UserActor] Wrong query parameter: " + query.getQuery());
+        }
     }
 
     private void onSearchResult(ObjectNode result) {
-        System.out.println("[UserActor] Received search results for query: " + result.get("searchQuery").asText());
-        searchHistory.add(result);
-        System.out.println("[UserActor] Updated search history: " + searchHistory);
-
+        String searchQuery = result.get("searchQuery").asText();
+        System.out.println("[UserActor] Received search results for query: " + searchQuery);
         ObjectNode response = Json.newObject();
         response.put("status", "success");
-        response.set("history", Json.toJson(searchHistory)); // Serialize the entire search history to JSON
-        clientActor.tell(response, getSelf()); // Send the response to the registered client actor
-        System.out.println("[UserActor] Sent updated search history to client.");
+        response.set("result", result); // Pass the search result directly to the client
 
+        clientActor.tell(response, getSelf());
+        System.out.println("[UserActor] Sent search result to client.");
     }
+
+/*    private void onChannelResult(ObjectNode result) {
+
+    }*/
 
     private void onUnknownMessage(Object message) {
         System.err.println("[UserActor] Unknown message received: " + message);
     }
 
-    public static class SearchQuery {
+    public static class ClientMessage {
         private final String query;
 
-        public SearchQuery(String query) {
+        public ClientMessage(String query) {
             this.query = query;
         }
 

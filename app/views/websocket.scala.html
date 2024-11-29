@@ -1,4 +1,5 @@
 @main("TubeLytics WebSocket Search") {
+
 <style>
     body {
         font-family: 'Arial', sans-serif;
@@ -10,40 +11,39 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: 100vh; /* Ensures full screen height layout */
-        box-sizing: border-box; /* Adds consistency in element sizing */
+        min-height: 100vh;
+        box-sizing: border-box;
     }
     .search-container {
-        width: 100%; /* Full width of the viewport */
-        max-width: 600px; /* Keeps it constrained on larger screens */
+        width: 100%;
+        max-width: 600px;
         background-color: #fff;
         padding: 20px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         text-align: center;
         border-radius: 8px;
-        margin: 20px; /* Adds spacing around the container */
-        box-sizing: border-box; /* Prevents overflow issues */
+        margin: 20px;
+        box-sizing: border-box;
     }
     input[type="text"] {
-        width: 100%; /* Stretches input to full container width */
+        width: 100%;
         padding: 10px;
         margin-bottom: 10px;
         border: 1px solid #ccc;
         border-radius: 4px;
-        box-sizing: border-box; /* Ensures consistent sizing */
+        box-sizing: border-box;
     }
     .button {
         background-color: #28a745;
         color: white;
         border: none;
         padding: 10px 20px;
-        text-decoration: none;
         font-size: 16px;
         cursor: pointer;
         border-radius: 4px;
         transition: background-color 0.3s, box-shadow 0.3s;
-        width: 100%; /* Button takes the full width of the container */
-        box-sizing: border-box; /* Ensures padding doesn’t break layout */
+        width: 100%;
+        box-sizing: border-box;
     }
     .button:hover {
         background-color: #218838;
@@ -56,10 +56,10 @@
         margin-bottom: 20px;
     }
     .results img {
-        max-width: 100%; /* Ensures images are responsive */
-        height: auto; /* Maintains aspect ratio */
-        display: block; /* Ensures it behaves as a block element */
-        margin: 0 auto 10px; /* Centers the image and adds spacing */
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto 10px;
     }
     hr {
         border: none;
@@ -67,7 +67,6 @@
         margin: 10px 0;
     }
 </style>
-
 
 <div class="search-container">
     <h1>TubeLytics Search</h1>
@@ -80,116 +79,76 @@
     const resultsDiv = document.getElementById("results");
     const searchButton = document.getElementById("searchButton");
     const searchQueryInput = document.getElementById("searchQuery");
-    const socket = new WebSocket("@routes.WebSocketController.stream()"); // Updated to match new structure
+    const socket = new WebSocket("@routes.WebSocketController.stream()");
 
-    // Function to render video results
-    const renderResults = (videos) => {
+    const appendResults = (videos, searchQuery) => {
+        const searchQueryHeader = document.createElement("h3");
+        searchQueryHeader.textContent = `Results for: ${searchQuery}`;
+        resultsDiv.appendChild(searchQueryHeader);
+
         if (videos && Array.isArray(videos)) {
-            resultsDiv.innerHTML = "<h3>Results:</h3>";
-            videos.forEach(video => {
+            videos.forEach((video) => {
                 const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
-                resultsDiv.innerHTML += `
-    <div>
-        <img src="${video.thumbnailUrl}" alt="${video.title}" style="width:120px;height:90px;"><br>
-        <strong>${video.title}</strong><br>
-        <a href="${videoUrl}" target="_blank">Watch</a><br>
-        <small>Channel: ${video.channel}</small><br>
-        <p>${video.description}</p>
-    </div>
-    <hr>`;
+                const videoElement = document.createElement("div");
+                videoElement.innerHTML = `
+                    <div>
+                        <img src="${video.thumbnailUrl}" alt="${video.title}" style="width:120px;height:90px;"><br>
+                        <strong>${video.title}</strong><br>
+                        <a href="${videoUrl}" target="_blank">Watch</a><br>
+                        <small class="channel-link" data-channel-id="${video.channelId}"
+                            style="cursor: pointer; color: blue; text-decoration: underline;">
+                            Channel: ${video.channel}
+                        </small><br>
+                        <p>${video.description}</p>
+                    </div>
+                    <hr>`;
+                resultsDiv.appendChild(videoElement);
             });
         } else {
-            resultsDiv.innerHTML = "<p>No videos found.</p>";
+            const noVideosMessage = document.createElement("p");
+            noVideosMessage.textContent = "No videos found for this query.";
+            resultsDiv.appendChild(noVideosMessage);
         }
     };
 
-    // Function to handle errors
-    const showError = (message) => {
-        resultsDiv.innerHTML = `<p class="error">${message}</p>`;
-    };
-
-    // WebSocket message event handler
     socket.onmessage = (event) => {
-    try {
-        const data = JSON.parse(event.data);
-
-        if (data.error) {
-            console.warn("[Frontend] Server error:", data.error);
-            showError(`Server error: ${data.error}`);
-        } else if (data.status === "success" && data.history && data.history.length > 0) {
-            resultsDiv.innerHTML = ""; // Clear previous results
-
-
-            // Reverse the order of the history array
-            const reversedHistory = [...data.history].reverse();
-
-            // Iterate through the reversed history array
-            reversedHistory.forEach((entry) => {
-                const searchQueryHeader = document.createElement("h3");
-                searchQueryHeader.textContent = `Results for: ${entry.searchQuery}`;
-                resultsDiv.appendChild(searchQueryHeader);
-
-                if (entry.videos && Array.isArray(entry.videos)) {
-                    entry.videos.forEach((video) => {
-                        const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
-                        const videoElement = document.createElement("div");
-                        videoElement.innerHTML = `
-                            <div>
-                                <img src="${video.thumbnailUrl}" alt="${video.title}" style="width:120px;height:90px;"><br>
-                                <strong>${video.title}</strong><br>
-                                <a href="${videoUrl}" target="_blank">Watch</a><br>
-                                <small class="channel-link" data-channel-id="${video.channelId}" style="cursor: pointer; color: blue; text-decoration: underline;">
-                                    Channel: ${video.channel}
-                                </small><br>
-                                <p>${video.description}</p>
-                            </div>
-                            <hr>`;
-                        resultsDiv.appendChild(videoElement);
-                    });
-                } else {
-                    const noVideosMessage = document.createElement("p");
-                    noVideosMessage.textContent = "No videos found for this query.";
-                    resultsDiv.appendChild(noVideosMessage);
-                }
-            });
-        } else {
-            console.warn("[Frontend] Unexpected WebSocket message format:", data);
-            showError("Unexpected response from server.");
+        try {
+            const data = JSON.parse(event.data);
+            if (data.status === "success" && data.result?.videos && Array.isArray(data.result.videos)) {
+                const searchQuery = data.result.searchQuery;
+                appendResults(data.result.videos, searchQuery);
+            } else {
+                console.warn("Unexpected message format:", data);
+                resultsDiv.innerHTML = "<p>No results found.</p>";
+            }
+        } catch (error) {
+            console.error("Error parsing WebSocket message:", error);
+            resultsDiv.innerHTML = "<p>Error processing data.</p>";
         }
-    } catch (error) {
-        console.error("[Frontend] Error parsing WebSocket message:", error);
-        showError("Invalid data received.");
-    }
-};
+    };
 
-
-    // Handle WebSocket open event
     socket.onopen = () => {
-        console.log("[Frontend] WebSocket connection established.");
-        resultsDiv.innerHTML = "<p>WebSocket connection established. Ready to search!</p>";
+        console.log("WebSocket connection established.");
+        resultsDiv.innerHTML = "<p>WebSocket connected. Ready for search!</p>";
     };
 
-    // Handle WebSocket close event
-    socket.onclose = (event) => {
-        console.warn("[Frontend] WebSocket connection closed:", event);
-        resultsDiv.innerHTML = "<p>Connection closed by the server.</p>";
+    socket.onclose = () => {
+        console.warn("WebSocket connection closed.");
+        resultsDiv.innerHTML += "<p>Connection closed.</p>";
     };
 
-    // Handle WebSocket errors
     socket.onerror = (error) => {
-        console.error("[Frontend] WebSocket error:", error);
-        showError("An error occurred. Please try again later.");
+        console.error("WebSocket error:", error);
+        resultsDiv.innerHTML = "<p>Error occurred. Please try again later.</p>";
     };
 
-    // Event listener for search button click
     searchButton.addEventListener("click", () => {
         const query = searchQueryInput.value.trim();
         if (query) {
             if (socket.readyState === WebSocket.OPEN) {
-                const payload = JSON.stringify({ query });
-                console.log("[Frontend] Sending WebSocket message:", payload);
+                const payload = JSON.stringify({ query: "search " + query });
                 socket.send(payload);
-                resultsDiv.innerHTML = "<p>Searching...</p>";
+                resultsDiv.innerHTML += `<p>Searching for: ${query}</p>`;
             } else {
                 alert("WebSocket connection is not open.");
             }
@@ -198,10 +157,21 @@
         }
     });
 
-    // Handle "Enter" key press on search query input
     searchQueryInput.addEventListener("keypress", (event) => {
         if (event.key === "Enter") {
             searchButton.click();
+        }
+    });
+
+        resultsDiv.addEventListener("click", (event) => {
+        if (event.target?.classList.contains("channel-link")) {
+            const channelId = event.target.getAttribute("data-channel-id");
+            if (socket.readyState === WebSocket.OPEN) {
+                const payload = JSON.stringify({ query: "chanel " + channelId });
+                socket.send(payload);
+            } else {
+                alert("WebSocket connection is not open.");
+            }
         }
     });
 </script>

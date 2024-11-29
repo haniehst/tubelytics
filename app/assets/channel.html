@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Channel Material</title>
+</head>
+<body>
+<h1>Channel Material</h1>
+<div id="channel-content"></div>
+
+<script>
+    const channelContentDiv = document.getElementById("channel-content");
+
+    // Listen for messages from the parent window
+    window.addEventListener("message", (event) => {
+        // Ensure the message is from the same origin
+        if (event.origin !== window.location.origin) return;
+
+        // Extract data from the message
+        const { type, channelId } = event.data;
+
+        if (type === "channelData" && channelId) {
+            // Display the channelId in the UI
+            channelContentDiv.innerHTML = `<p>Channel ID: ${channelId}</p>`;
+
+            // Use the WebSocket from the main page
+            const socket = event.source.websocket;
+            if (socket) {
+                // Send a request for channel-specific data
+                socket.send(JSON.stringify({ action: "fetchChannelData", channelId: channelId }));
+
+                // Handle incoming channel data
+                socket.onmessage = (messageEvent) => {
+                    const data = JSON.parse(messageEvent.data);
+                    if (data.channelId === channelId) {
+                        channelContentDiv.innerHTML += `<p>New data: ${JSON.stringify(data)}</p>`;
+                    }
+                };
+            } else {
+                channelContentDiv.innerHTML += "<p>Error: WebSocket not found.</p>";
+            }
+        }
+    });
+</script>
+</body>
+</html>

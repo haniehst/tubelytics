@@ -68,7 +68,7 @@ public class WebSocketController extends Controller {
                 System.out.println("[WebSocketController] Received WebSocket message: " + jsonNode);
                 try {
                     String query = jsonNode.get("query").asText();
-                    userActor.tell(new UserActor.SearchQuery(query), ActorRef.noSender());
+                    userActor.tell(new UserActor.ClientMessage(query), ActorRef.noSender());
                 } catch (Exception e) {
                     System.err.println("[WebSocketController] Error processing message: " + e.getMessage());
                     supervisorActor.tell(new SupervisorActor.ConnectionFailure(userId, e), ActorRef.noSender());
