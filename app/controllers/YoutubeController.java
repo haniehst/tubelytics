@@ -112,55 +112,7 @@ public class YoutubeController extends Controller {
         return ReadabilityCalculator.calculateAverageReadabilityStats(videos);
     }
 
-    /**
-     * Retrieves word frequency statistics for the given search query using cached videos if available.
-     * <p>If no cached videos are found, it performs a new search and updates the cache.
-     * The method then generates word statistics based on the video data.</p>
-     *
-     * @param searchQuery the search query string to retrieve word statistics for
-     * @return a Result that renders the word statistics view with the generated word frequency data
-     *         and the original search query
-     *
-     * @see WordStats#generateWordStats(List)
-     * @author Younes
-     */
-//    public Result wordStats(String searchQuery) {
-//        // Retrieve cached videos for the given searchQuery
-//        List<Video> videos = latestSearchResults.get(searchQuery);
-//
-//        if (videos == null) {
-//            // If videos are not found in cache, perform the service call
-//            videos = this.youtubeService.searchVideos(searchQuery);
-//            latestSearchResults.put(searchQuery, videos);
-//        }
-//
-//        WordStats wordStats = new WordStats();
-//        Map<String, Long> wordStatistics = wordStats.generateWordStats(videos);
-//
-//        return ok(views.html.wordStats.render(wordStatistics, searchQuery));
-//    }
-
-    /**
-     * Retrieves the video details along with associated tags for a given video ID.
-     *
-     * <p>This method interacts with the YouTube API through the YoutubeService to fetch the video
-     * details. If the video is found, it renders the details using the appropriate view template.
-     * If the video is not found, it returns a 404 not found response.</p>
-     *
-     * @param videoId The ID of the video whose details are to be retrieved. This should be a valid
-     *                YouTube video ID.
-     * @return A Result containing the rendered video details view if the video is found,
-     *         or a 404 not found response if the video does not exist.
-     * @exception NullPointerException if the videoId is null.
-     *
-     * @author Rafi
-     */
-//    public Result videoWithTags(String videoId) {
-//        Video video = this.youtubeService.getVideoWithTags(videoId);
-//        if (video != null) {
-//            return ok(views.html.tags.render(video)); // Ensure you're passing the Video object
-//        } else {
-//            return notFound("Video not found");
-//        }
-//    }
+    public LinkedHashMap<String, List<Video>> getCachedResult(){
+        return cachedResults;
+    }
 }

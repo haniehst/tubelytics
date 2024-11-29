@@ -1,29 +1,32 @@
 package services;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import models.Video;
-import models.Channel;
-import org.junit.Before;
-import org.junit.Test;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import models.Video;
+import models.Channel;
+
+import play.api.Configuration;
+
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import play.api.Configuration;
-import java.net.HttpURLConnection;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.mockito.Mockito.*;
 import static org.junit.Assert.*;
+
 
 /**
  * <p>Test class for YoutubeService, specifically testing the private parseVideos method.</p>
@@ -55,6 +58,26 @@ public class YoutubeServiceTest {
 
         // Initialize the YoutubeService with the mocked configuration
         youtubeService = spy(new YoutubeService(config));
+    }
+
+    @Test
+    public void testSearchVideosReturnType() throws Exception {
+        // Given
+        String keyword = "test";
+
+        // Mocking private methods to ensure functionality works as expected
+        doReturn("https://mocked.youtube.com/search").when(youtubeService).buildUrl(keyword);
+        doReturn(mockConnection).when(youtubeService).createConnection(anyString());
+        doReturn("[]").when(youtubeService).fetchResponse(mockConnection);
+        doReturn(List.of()).when(youtubeService).parseVideos("[]");
+
+        // When
+        List<Video> result = youtubeService.searchVideos(keyword);
+
+        // Then
+        assertNotNull("The searchVideos method should return a non-null List", result);
+        assertTrue("The result should be a list of Video objects", result.stream().allMatch(video -> video instanceof Video));
+
     }
 
     @Test
@@ -276,33 +299,6 @@ public class YoutubeServiceTest {
         assertNull(video.getDescription()); // description is missing
         assertNull(video.getThumbnailUrl()); // thumbnails is missing
     }
-
-//    /**
-//     * Test getVideoWithTags - normal flow
-//     */
-//    @Test
-//    public void testGetVideoWithTags_ValidVideoId() {
-//        doReturn(mockVideoWithTags()).when(youtubeService).getVideoWithTags("sampleVideoId");
-//
-//        Video video = youtubeService.getVideoWithTags("sampleVideoId");
-//        assertNotNull(video);
-//        assertEquals("Sample Video", video.getTitle());
-//        assertEquals("Tag1", video.getTags().get(0));
-//    }
-//
-//    /**
-//     * Test getVideoWithTags - error handling
-//     */
-//    @Test
-//    public void testGetVideoWithTags_ErrorHandling() {
-//        doThrow(new RuntimeException("API error")).when(youtubeService).getVideoWithTags(anyString());
-//        try {
-//            youtubeService.getVideoWithTags("errorVideoId");
-//            fail("Exception expected");
-//        } catch (RuntimeException e) {
-//            assertEquals("API error", e.getMessage());
-//        }
-//    }
 
     /**
      * Test getChannelProfile - valid channel

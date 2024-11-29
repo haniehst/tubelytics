@@ -93,7 +93,7 @@ public class YoutubeService {
      * @throws UnsupportedEncodingException If the keyword cannot be encoded using UTF-8.
      * @author hanieh
      */
-    private String buildUrl(String keyword) throws UnsupportedEncodingException {
+    protected String buildUrl(String keyword) throws UnsupportedEncodingException {
         String encodedKeyword = URLEncoder.encode(keyword, StandardCharsets.UTF_8.toString());
         return String.format("%s?part=snippet&q=%s&type=video&maxResults=%d&key=%s",
                 this.searchURL, encodedKeyword, videoCount, this.apiKey);
@@ -111,7 +111,7 @@ public class YoutubeService {
      * @return An initialized {@link HttpURLConnection} instance.
      * @author hanieh
      */
-    private HttpURLConnection createConnection(String urlString) throws IOException {
+    protected HttpURLConnection createConnection(String urlString) throws IOException {
         URL url = new URL(urlString);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
@@ -130,7 +130,7 @@ public class YoutubeService {
      * @return The response content as a string.
      * @author hanieh
      */
-    private String fetchResponse(HttpURLConnection conn) throws IOException {
+    protected String fetchResponse(HttpURLConnection conn) throws IOException {
         StringBuilder response = new StringBuilder();
         try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
             String inputLine;
@@ -154,7 +154,7 @@ public class YoutubeService {
      * @return A list of {@link Video} objects parsed from the JSON response.
      * #author hanieh
      */
-    private List<Video> parseVideos(String jsonResponse) {
+    protected List<Video> parseVideos(String jsonResponse) {
         List<Video> videos = new ArrayList<>();
         JSONObject responseJson = new JSONObject(jsonResponse);
         JSONArray items = responseJson.getJSONArray("items");
@@ -180,7 +180,7 @@ public class YoutubeService {
      * @return A {@link Video} object with the extracted details, or null if the snippet is missing.
      * @author hanieh
      */
-    private Video parseVideo(JSONObject videoJson) {
+    protected  Video parseVideo(JSONObject videoJson) {
         String videoId = videoJson.optJSONObject("id") != null ? videoJson.getJSONObject("id").optString("videoId", null) : null;
         JSONObject snippet = videoJson.optJSONObject("snippet");
 
