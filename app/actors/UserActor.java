@@ -24,7 +24,7 @@ public class UserActor extends AbstractActor {
     private ActorRef clientActor; // Client Actor Reference
     private YoutubeService youtubeService;
     private final ActorRef searchActor; // SearchActor Reference
-   // private final ActorRef channelActor; // ChannelActor Reference
+    private final ActorRef channelActor; // ChannelActor Reference
     private final List<String> searchHistory = new ArrayList<>(); // Store user search history
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
 
@@ -36,7 +36,7 @@ public class UserActor extends AbstractActor {
     public UserActor(YoutubeService youtubeService) {
         this.youtubeService = youtubeService;
         this.searchActor = getContext().actorOf(Props.create(SearchActor.class, youtubeService), "searchActor");
-       // this.channelActor = getContext().actorOf(Props.create(ChannelActor.class, youtubeService), "channelActor");
+        this.channelActor = getContext().actorOf(Props.create(ChannelActor.class, youtubeService), "channelActor");
     }
 
 
@@ -65,17 +65,17 @@ public class UserActor extends AbstractActor {
             System.out.println("[UserActor] Forwarding search query to SearchActor: " + query);
             searchActor.tell(jsonPayload, getSelf());
 
-        } else if (jsonPayload.has("channelProfileId") || jsonPayload.has("channelProfileName")) {
+        } else if (jsonPayload.has("channelId")) {
             // Forward to ChannelActor
             System.out.println("[UserActor] Forwarding channel operation to ChannelActor");
-//            channelActor.tell(jsonPayload, getSelf());
+            channelActor.tell(jsonPayload, getSelf());
 
         } else if (jsonPayload.has("videos")){
             clientActor.tell(jsonPayload, getSelf());
 
         }
         else {
-            System.out.println("[UserActor] Invalid JSON payload received: {}");
+            System.out.println("[UserActor] Invalid JSON payload received!");
         }
     }
 

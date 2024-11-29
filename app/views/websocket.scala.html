@@ -68,24 +68,42 @@
 
     // Function to render video results
     const renderResults = (videos) => {
-        if (videos && Array.isArray(videos)) {
-            resultsDiv.innerHTML = "<h3>Results:</h3>";
-            videos.forEach(video => {
-                const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`; // Construct video URL
-                resultsDiv.innerHTML += `
+    if (videos && Array.isArray(videos)) {
+        resultsDiv.innerHTML = "<h3>Results:</h3>";
+        videos.forEach(video => {
+            const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`; // Construct video URL
+            resultsDiv.innerHTML += `
     <div>
         <img src="${video.thumbnailUrl}" alt="${video.title}" style="width:120px;height:90px;"><br>
         <strong>${video.title}</strong><br>
         <a href="${videoUrl}" target="_blank">Watch</a><br>
-        <small>Channel: ${video.channel}</small><br>
+        <small class="channel-link" data-channel-id="${video.channelId}" style="cursor: pointer; color: blue; text-decoration: underline;">
+            Channel: ${video.channel}
+        </small><br>
         <p>${video.description}</p>
     </div>
     <hr>`;
+        });
+
+        // Add event listeners to channel links
+        const channelLinks = document.querySelectorAll('.channel-link');
+        channelLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                const channelId = link.getAttribute('data-channel-id');
+                if (socket.readyState === WebSocket.OPEN) {
+                    const payload = JSON.stringify({ channelId }); // Create payload with channelId
+                    console.log("Sending WebSocket message:", payload); // Debugging
+                    socket.send(payload);
+                } else {
+                    alert("WebSocket connection is not open.");
+                }
             });
-        } else {
-            resultsDiv.innerHTML = "<p>No videos found.</p>";
-        }
-    };
+        });
+    } else {
+        resultsDiv.innerHTML = "<p>No videos found.</p>";
+    }
+};
+
 
     // Function to handle errors
     const showError = (message) => {
