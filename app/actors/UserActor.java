@@ -3,83 +3,97 @@ package actors;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
-
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import play.libs.Json;
+import services.YoutubeService;
+
 import java.util.ArrayList;
 import java.util.List;
 
-import models.*;
-import services.*;
-import actors.SearchActor;
-import actors.ChannelActor;
-
-
-/**
- * Handles user-specific logic, including search history and interacting with YoutubeService.
- */
 public class UserActor extends AbstractActor {
+    private final String userId;
+    private final List<JsonNode> searchHistory = new ArrayList<>();
+    private final ActorRef SearchActor;
+    private ActorRef clientActor;
+    private String socketId;
 
-    private ActorRef clientActor; // Client Actor Reference
-    private YoutubeService youtubeService;
-    private final ActorRef searchActor; // SearchActor Reference
-    private final ActorRef channelActor; // ChannelActor Reference
-    private final List<String> searchHistory = new ArrayList<>(); // Store user search history
-    private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
+    public UserActor(ActorRef supervisorActor, String userId, YoutubeService youtubeService) {
+        this.userId = userId;
+        System.out.println("[UserActor] Created for userId: " + userId);
 
-    /**
-     * Constructs a UserActor with the given YoutubeService.
-     *
-     * @param youtubeService Service for interacting with the YouTube API.
-     */
-    public UserActor(YoutubeService youtubeService) {
-        this.youtubeService = youtubeService;
-        this.searchActor = getContext().actorOf(Props.create(SearchActor.class, youtubeService), "searchActor");
-        this.channelActor = getContext().actorOf(Props.create(ChannelActor.class, youtubeService), "channelActor");
+        // Pass YoutubeService to SearchActor
+        this.SearchActor = getContext().actorOf(
+                Props.create(SearchActor.class, supervisorActor, youtubeService),
+                "SearchActor-" + userId
+        );
     }
-
 
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(ActorRef.class, this::onClientRegistered) // Handle client registration
-                .match(JsonNode.class, this::onClientQuery)
+                .match(SupervisorActor.AssignSocket.class, this::onSocketAssigned)
+                .match(SearchQuery.class, this::onSearchQuery)
+                .match(ObjectNode.class, this::onSearchResult)
+                .match(ActorRef.class, this::onClientActorRegistered)// Handle client actor registration
                 .matchAny(this::onUnknownMessage)
                 .build();
     }
 
-    private void onClientRegistered(ActorRef clientActor) {
-        this.clientActor = clientActor;
+    private void onSocketAssigned(SupervisorActor.AssignSocket assignSocket) {
+        this.socketId = assignSocket.getSocketId();
+        System.out.println("[UserActor] Socket assigned: " + socketId);
     }
 
-    private void onClientQuery(JsonNode jsonPayload) {
-        if (clientActor == null) {
-            System.out.println("[UserActor] Client ActorRef is not registered. Cannot send messages.");
-            return;
-        }
+    private void onClientActorRegistered(ActorRef actorRef) {
+        this.clientActor = actorRef; // Save the client actor reference
+        System.out.println("[UserActor] Client ActorRef registered: " + clientActor);
+    }
 
-        if (jsonPayload.has("query")) {
-            // Forward to SearchActor
-            String query = jsonPayload.get("query").asText();
-            System.out.println("[UserActor] Forwarding search query to SearchActor: " + query);
-            searchActor.tell(jsonPayload, getSelf());
+    private void onSearchQuery(SearchQuery query) {
+        System.out.println("[UserActor] User " + userId + " queried: " + query.getQuery());
+        SearchActor.tell(new SearchActor.SearchTask(query.getQuery(), getSelf()), getSelf());
+    }
 
-        } else if (jsonPayload.has("channelId")) {
-            // Forward to ChannelActor
-            System.out.println("[UserActor] Forwarding channel operation to ChannelActor");
-            channelActor.tell(jsonPayload, getSelf());
+    private void onSearchResult(ObjectNode result) {
+        System.out.println("[UserActor] Received search results for query: " + result.get("searchQuery").asText());
+        searchHistory.add(result);
+        System.out.println("[UserActor] Updated search history: " + searchHistory);
 
-        } else if (jsonPayload.has("videos")){
-            clientActor.tell(jsonPayload, getSelf());
+        ObjectNode response = Json.newObject();
+        response.put("status", "success");
+        response.set("history", Json.toJson(searchHistory)); // Serialize the entire search history to JSON
+        clientActor.tell(response, getSelf()); // Send the response to the registered client actor
+        System.out.println("[UserActor] Sent updated search history to client.");
 
-        }
-        else {
-            System.out.println("[UserActor] Invalid JSON payload received!");
-        }
     }
 
     private void onUnknownMessage(Object message) {
-        System.err.println("[UserActor] Received unknown message type: " + message.getClass());
+        System.err.println("[UserActor] Unknown message received: " + message);
+    }
+
+    public static class SearchQuery {
+        private final String query;
+
+        public SearchQuery(String query) {
+            this.query = query;
+        }
+
+        public String getQuery() {
+            return query;
+        }
+    }
+
+    public static class RegisterClient {
+        private final ActorRef clientActor;
+
+        public RegisterClient(ActorRef clientActor) {
+            this.clientActor = clientActor;
+        }
+
+        public ActorRef getClientActor() {
+            return clientActor;
+        }
     }
 }
+x
