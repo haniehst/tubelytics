@@ -9,35 +9,17 @@ import services.YoutubeService;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Actor responsible for handling operations related to YouTube channels.
- * <p>
- * This includes fetching the channel profile and recent videos asynchronously.
- * </p>
- *
- * @author Adriana
- */
 public class ChannelActor extends AbstractActor {
 
     private final YoutubeService youtubeService;
 
-    /**
-     * Props factory method for creating the ChannelActor.
-     *
-     * @param youtubeService The YouTube service used to interact with the YouTube API.
-     * @return Props for creating the ChannelActor.
-     */
     public static Props props(YoutubeService youtubeService) {
         return Props.create(ChannelActor.class, () -> new ChannelActor(youtubeService));
     }
 
-    /**
-     * Constructor for the ChannelActor.
-     *
-     * @param youtubeService The YouTube service used to interact with the YouTube API.
-     */
     public ChannelActor(YoutubeService youtubeService) {
         this.youtubeService = youtubeService;
+        System.out.println("[ChannelActor] Initialized with YoutubeService");
     }
 
     @Override
@@ -47,33 +29,24 @@ public class ChannelActor extends AbstractActor {
                 .build();
     }
 
-    /**
-     * Handles the {@link FetchChannelProfile} message to fetch the channel profile
-     * and recent videos.
-     *
-     * @param message The FetchChannelProfile message containing the channelId.
-     */
     private void onFetchChannelProfile(FetchChannelProfile message) {
-        String channelId = message.channelId;
+        System.out.println("[ChannelActor] Received FetchChannelProfile for channelId: " + message.channelId);
 
-        // Fetch channel profile and recent videos asynchronously
         CompletableFuture.supplyAsync(() -> {
-            Channel channel = youtubeService.getChannelProfile(channelId);
-            List<Video> videos = youtubeService.searchVideosByChannel(channelId, 10);
+            Channel channel = youtubeService.getChannelProfile(message.channelId);
+            List<Video> videos = youtubeService.searchVideosByChannel(message.channelId, 10);
+            System.out.println("[ChannelActor] Fetched profile: " + channel.getTitle() + ", videos: " + videos.size());
             return new ChannelProfileResponse(channel, videos);
         }).thenAccept(response -> {
-            // Send response back to the sender
+            System.out.println("[ChannelActor] Sending response to sender.");
             getSender().tell(response, getSelf());
         }).exceptionally(ex -> {
-            // Send a failure response in case of an error
+            System.err.println("[ChannelActor] Error fetching channel profile: " + ex.getMessage());
             getSender().tell(new ChannelProfileResponse(null, null), getSelf());
             return null;
         });
     }
 
-    /**
-     * Message class to request fetching a channel profile.
-     */
     public static class FetchChannelProfile {
         public final String channelId;
 
@@ -82,9 +55,6 @@ public class ChannelActor extends AbstractActor {
         }
     }
 
-    /**
-     * Message class to represent the response containing the channel profile and videos.
-     */
     public static class ChannelProfileResponse {
         public final Channel channel;
         public final List<Video> videos;

@@ -6,3 +6,4 @@ addSbtPlugin("org.foundweekends.giter8" % "sbt-giter8-scaffold" % "0.16.2")
 
 // Jacoco for test coverage
 addSbtPlugin("com.github.sbt" % "sbt-jacoco" % "3.5.0")
+
