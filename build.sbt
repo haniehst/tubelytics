@@ -29,9 +29,11 @@ libraryDependencies += "com.google.code.gson" % "gson" % "2.8.9"
 doc / javacOptions ++= Seq("-private")
 
 // Include only .java files in `app` and `test` folders
-sources in (Compile, doc) := {
+sources in(Compile, doc) := {
   val srcDirs = Seq("app", "test") // Add more directories if needed
-  (sources in (Compile, doc)).value.filter(file =>
+  (sources in(Compile, doc)).value.filter(file =>
     file.getName.endsWith(".java") && srcDirs.exists(dir => file.getPath.contains(s"/$dir/"))
   )
 }
+
+

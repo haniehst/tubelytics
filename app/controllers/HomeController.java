@@ -32,3 +32,4 @@ public class HomeController extends Controller {
         return CompletableFuture.completedFuture(ok(views.html.websocket.render()));
     }
 }
+
