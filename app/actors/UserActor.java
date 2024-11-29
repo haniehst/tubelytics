@@ -14,7 +14,7 @@ import java.util.List;
 public class UserActor extends AbstractActor {
     private final String userId;
     private final List<JsonNode> searchHistory = new ArrayList<>();
-    private final ActorRef SearchActor;
+    private final ActorRef searchActor;
     private ActorRef clientActor;
     private String socketId;
 
@@ -23,7 +23,7 @@ public class UserActor extends AbstractActor {
         System.out.println("[UserActor] Created for userId: " + userId);
 
         // Pass YoutubeService to SearchActor
-        this.SearchActor = getContext().actorOf(
+        this.searchActor = getContext().actorOf(
                 Props.create(SearchActor.class, supervisorActor, youtubeService),
                 "SearchActor-" + userId
         );
@@ -52,7 +52,7 @@ public class UserActor extends AbstractActor {
 
     private void onSearchQuery(SearchQuery query) {
         System.out.println("[UserActor] User " + userId + " queried: " + query.getQuery());
-        SearchActor.tell(new SearchActor.SearchTask(query.getQuery(), getSelf()), getSelf());
+        searchActor.tell(new SearchActor.SearchTask(query.getQuery(), getSelf()), getSelf());
     }
 
     private void onSearchResult(ObjectNode result) {
@@ -96,4 +96,3 @@ public class UserActor extends AbstractActor {
         }
     }
 }
-x
