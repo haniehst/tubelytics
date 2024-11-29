@@ -13,10 +13,15 @@ libraryDependencies ++= Seq(
 
   // Core libraries
   "org.json" % "json" % "20210307",
-  "org.mockito" % "mockito-core" % "4.0.0" % Test,
+  "org.mockito" % "mockito-core" % "4.11.0" % Test,
   "junit" % "junit" % "4.13.2" % Test,
   "org.apache.commons" % "commons-text" % "1.12.0"
 )
+
+libraryDependencies ++= Seq(
+  "com.typesafe.akka" %% "akka-testkit" % "2.6.21" % Test
+)
+
 
 libraryDependencies += "com.google.code.gson" % "gson" % "2.8.9"
 

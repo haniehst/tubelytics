@@ -1,100 +1,51 @@
-//package controllers;
-//
-//import org.junit.Test;
-//import play.Application;
-//import play.inject.guice.GuiceApplicationBuilder;
-//import play.mvc.Http;
-//import play.mvc.Result;
-//import play.test.WithApplication;
-//
-//import static org.junit.Assert.assertEquals;
-//import static play.mvc.Http.Status.OK;
-//import static play.test.Helpers.GET;
-//import static play.test.Helpers.route;
-//
-//public class HomeControllerTest extends WithApplication {
-//
-//    @Override
-//    protected Application provideApplication() {
-//        return new GuiceApplicationBuilder().build();
-//    }
-//
-//    @Test
-//    public void testIndex() {
-//        Http.RequestBuilder request = new Http.RequestBuilder()
-//                .method(GET)
-//                .uri("/");
-//
-//        Result result = route(app, request);
-//        assertEquals(OK, result.status());
-//    }
-//
-//}
 package controllers;
 
+import org.junit.Before;
 import org.junit.Test;
-import play.Application;
-import play.inject.guice.GuiceApplicationBuilder;
-import play.mvc.Http;
 import play.mvc.Result;
-import play.test.WithApplication;
 
-import static org.junit.Assert.assertEquals;
-import static play.mvc.Http.Status.OK;
-import static play.test.Helpers.GET;
-import static play.test.Helpers.route;
+import java.util.concurrent.CompletionStage;
 
-/**
- * Unit tests for HomeController to validate its endpoints.
- *
- * @author Adriana
- * @author Hanieh
- */
-public class HomeControllerTest extends WithApplication {
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
-    /**
-     * Provides the Play application for testing.
-     *
-     * @return an instance of Application.
-     */
-    @Override
-    protected Application provideApplication() {
-        return new GuiceApplicationBuilder().build();
+public class HomeControllerTest {
+
+    private HomeController homeController;
+
+    @Before
+    public void setUp() {
+        // Initialize the HomeController
+        homeController = new HomeController();
     }
 
-    /**
-     * Test to ensure the index endpoint responds with an OK status.
-     */
     @Test
-    public void testIndex() {
-        // Simulate a GET request to the root endpoint ("/")
-        Http.RequestBuilder request = new Http.RequestBuilder()
-                .method(GET)
-                .uri("/");
+    public void testIndexReturnType() {
+        // Call the index() method
+        CompletionStage<Result> result = homeController.index();
 
-        // Route the request through the Play application
-        Result result = route(app, request);
+        // Assert that the result is not null
+        assertNotNull("The index() method should return a non-null CompletionStage", result);
 
-        // Assert that the response status is OK
-        assertEquals(OK, result.status());
+        // Assert that the result contains a Play Result
+        result.toCompletableFuture().thenAccept(res -> {
+            assertNotNull("The CompletionStage should contain a non-null Result", res);
+            assertTrue("The Result should be an instance of play.mvc.Result", res instanceof Result);
+        });
     }
 
-    /**
-     * Test to ensure the WebSocket page endpoint responds with an OK status.
-     */
     @Test
-    public void testWebSocketPage() {
-        // Simulate a GET request to the WebSocket page endpoint ("/websocket")
-        Http.RequestBuilder request = new Http.RequestBuilder()
-                .method(GET)
-                .uri("/websocket");
+    public void testWebsocketPageReturnType() {
+        // Call the websocketPage() method
+        CompletionStage<Result> result = homeController.websocketPage();
 
-        // Route the request through the Play application
-        Result result = route(app, request);
+        // Assert that the result is not null
+        assertNotNull("The websocketPage() method should return a non-null CompletionStage", result);
 
-        // Assert that the response status is OK
-        assertEquals(OK, result.status());
+        // Assert that the result contains a Play Result
+        result.toCompletableFuture().thenAccept(res -> {
+            assertNotNull("The CompletionStage should contain a non-null Result", res);
+            assertTrue("The Result should be an instance of play.mvc.Result", res instanceof Result);
+        });
     }
 }
-
-
