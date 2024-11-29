@@ -5,22 +5,15 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import play.libs.Json;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import models.*;
 import services.*;
 import actors.SearchActor;
-// import actors.ChannelActor;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
+import actors.ChannelActor;
 
 
 /**
@@ -70,42 +63,21 @@ public class UserActor extends AbstractActor {
             // Forward to SearchActor
             String query = jsonPayload.get("query").asText();
             System.out.println("[UserActor] Forwarding search query to SearchActor: " + query);
-//            searchActor.tell(jsonPayload, getSelf());
+            searchActor.tell(jsonPayload, getSelf());
 
         } else if (jsonPayload.has("channelProfileId") || jsonPayload.has("channelProfileName")) {
             // Forward to ChannelActor
             System.out.println("[UserActor] Forwarding channel operation to ChannelActor");
 //            channelActor.tell(jsonPayload, getSelf());
 
-        } else {
+        } else if (jsonPayload.has("videos")){
+            clientActor.tell(jsonPayload, getSelf());
+
+        }
+        else {
             System.out.println("[UserActor] Invalid JSON payload received: {}");
         }
     }
-//
-//    private void onClientQuery(JsonNode jsonPayload) {
-//        if (clientActor == null) {
-//            System.err.println("[UserActor] Client ActorRef is not registered. Cannot send messages.");
-//            return;
-//        }
-//
-//        if (jsonPayload.has("query")) {
-//            String query = jsonPayload.get("query").asText();
-//            System.out.println("[UserActor] Received search query: " + query);
-//
-//            List<Video> videos = youtubeService.searchVideos(query).stream()
-//                    .limit(10) // Limit to the first 10 results
-//                    .collect(Collectors.toList());
-//
-//            ObjectNode searchResult = Json.newObject();
-//            searchResult.put("searchQuery", query);
-//            searchResult.set("videos", Json.toJson(videos));
-//
-//            System.out.println("[UserActor] Sending search results to client");
-//            clientActor.tell(searchResult, getSelf());
-//        } else {
-//            System.err.println("[UserActor] Invalid JSON payload: " + jsonPayload);
-//        }
-//    }
 
     private void onUnknownMessage(Object message) {
         System.err.println("[UserActor] Received unknown message type: " + message.getClass());

@@ -3,24 +3,18 @@ package actors;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import models.Video;
-import actors.UserActor;
 import akka.actor.OneForOneStrategy;
 import akka.actor.SupervisorStrategy;
 import static akka.actor.SupervisorStrategy.restart;
 import static akka.actor.SupervisorStrategy.stop;
-import akka.event.Logging;
-import akka.event.LoggingAdapter;
+import com.fasterxml.jackson.databind.JsonNode;
 import scala.concurrent.duration.Duration;
 import play.libs.Json;
-import services.YoutubeService;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.HashMap;
-import java.util.Map;
+import services.YoutubeService;
+import models.Video;
+import actors.UserActor;
+
 
 /**
  * Handles WebSocket communication and processes client requests for YouTube data.
@@ -30,7 +24,6 @@ public class ParentActor extends AbstractActor {
     private final YoutubeService youtubeService;
     private final ActorRef userActor; // Child Actor Reference
     private ActorRef searchActor; // Reference to SearchActor (grandchild)
-    private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
 
     /**
      * Constructs a ParentActor with the given YoutubeService.
@@ -83,12 +76,6 @@ public class ParentActor extends AbstractActor {
                 break;
         }
     }
-
-    /**
-     * Handles client search queries sent as JSON payloads.
-     *
-     * @param jsonPayload The JSON payload from the client.
-     */
 
 
     /**
