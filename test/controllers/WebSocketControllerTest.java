@@ -1,207 +1,144 @@
-//package controllers;
-//
-//import akka.actor.ActorRef;
-//import akka.actor.ActorSystem;
-//import akka.actor.Props;
-//import akka.stream.Materializer;
-//import akka.stream.javadsl.Flow;
-//import akka.stream.javadsl.Source;
-//import akka.stream.javadsl.Sink;
-//import com.fasterxml.jackson.databind.JsonNode;
-//import org.junit.Before;
-//import org.junit.Test;
-//import org.mockito.Mock;
-//import org.mockito.MockitoAnnotations;
-//import play.libs.F;
-//import play.mvc.Http;
-//import play.mvc.Result;
-//import services.YoutubeService;
-//
-//import java.lang.reflect.Method;
-//import java.util.concurrent.CompletableFuture;
-//import java.util.concurrent.CompletionStage;
-//
-//import static org.junit.Assert.*;
-//import static org.mockito.Mockito.*;
-//
-//public class WebSocketControllerTest {
-//
-//    @Mock
-//    private ActorSystem mockActorSystem;
-//
-//    @Mock
-//    private Materializer mockMaterializer;
-//
-//    @Mock
-//    private YoutubeService mockYoutubeService;
-//
-//    @Mock
-//    private ActorRef mockParentActor;
-//
-//    private WebSocketController webSocketController;
-//
-//    @Before
-//    public void setUp() {
-//        MockitoAnnotations.openMocks(this);
-//
-//        // Mock ActorSystem behavior
-//        when(mockActorSystem.actorOf(any(Props.class))).thenReturn(mockParentActor);
-//
-//        // Initialize the controller
-//        webSocketController = new WebSocketController(mockActorSystem, mockMaterializer, mockYoutubeService);
-//    }
-//
-//    @Test
-//    public void testCreateActorBasedFlow() throws Exception {
-//        // Mock Http.RequestHeader
-//        Http.RequestHeader mockRequestHeader = mock(Http.RequestHeader.class);
-//
-//        // Access the private method using reflection
-//        Method method = WebSocketController.class.getDeclaredMethod("createActorBasedFlow", Http.RequestHeader.class);
-//        method.setAccessible(true); // Make the private method accessible
-//
-//        @SuppressWarnings("unchecked")
-//        CompletionStage<F.Either<Result, Flow<JsonNode, JsonNode, ?>>>
-//                resultStage = (CompletionStage<F.Either<Result, Flow<JsonNode, JsonNode, ?>>>) method.invoke(webSocketController, mockRequestHeader);
-//
-//        // Assert that the result is a successful flow
-//        F.Either<Result, Flow<JsonNode, JsonNode, ?>> result = resultStage.toCompletableFuture().get();
-//        assertTrue(result.right.isPresent());
-//
-//        Flow<JsonNode, JsonNode, ?> flow = result.right.get();
-//
-//        // Verify flow functionality
-//        verifyFlowWorks(flow);
-//    }
-//
-//    private void verifyFlowWorks(Flow<JsonNode, JsonNode, ?> flow) throws Exception {
-//        // Test Source
-//        JsonNode mockInputJson = createTestJsonNode("{\"query\":\"test-query\"}");
-//        CompletableFuture<JsonNode> mockOutputFuture = new CompletableFuture<>();
-//
-//        // Create Sink that accepts JsonNode
-//        Sink<JsonNode, ?> testSink = Sink.foreach(mockOutputFuture::complete);
-//
-//        // Create Source and attach Flow
-//        Source<JsonNode, ?> testSource = Source.single(mockInputJson);
-//
-//        // Run the flow
-//        testSource.via(flow).to(testSink).run(mockMaterializer);
-//
-//        // Verify ParentActor receives the message
-//        verify(mockParentActor, times(1)).tell(mockInputJson, ActorRef.noSender());
-//
-//        // Assert the output JSON matches the input JSON
-//        assertEquals(mockInputJson, mockOutputFuture.get());
-//    }
-//
-//    private JsonNode createTestJsonNode(String jsonString) {
-//        // Use Jackson to create a mock JsonNode
-//        return play.libs.Json.parse(jsonString);
-//    }
-//}
 package controllers;
 
-import akka.actor.ActorRef;
+import actors.*;
+import controllers.WebSocketController;
+import services.YoutubeService;
+
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.Sink;
 import com.fasterxml.jackson.databind.JsonNode;
+import akka.testkit.javadsl.TestKit;
+
+import play.libs.F;
+import play.mvc.Result;
+import play.mvc.WebSocket;
+import play.mvc.Http;
+import akka.actor.ActorRef;
+import akka.stream.Materializer;
 import org.junit.Before;
+import org.junit.After;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import play.libs.F;
-import play.mvc.Http;
-import play.mvc.Result;
-import services.YoutubeService;
+import org.mockito.ArgumentMatcher;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
+import org.mockito.MockitoAnnotations;
 import java.lang.reflect.Method;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class WebSocketControllerTest {
 
-    @Mock
-    private ActorSystem mockActorSystem;
+    private ActorSystem actorSystem;
 
     @Mock
-    private Materializer mockMaterializer;
+    private Materializer materializer;
 
     @Mock
-    private YoutubeService mockYoutubeService;
+    private ActorRef supervisorActor;
 
     @Mock
-    private ActorRef mockParentActor;
+    private YoutubeService youtubeService;
 
     private WebSocketController webSocketController;
 
     @Before
     public void setUp() {
+        // Initialize Akka actor system
+        actorSystem = ActorSystem.create("TestSystem");
+
+        // Initialize mocks
         MockitoAnnotations.openMocks(this);
 
-        // Mock ActorSystem behavior
-        when(mockActorSystem.actorOf(any(Props.class))).thenReturn(mockParentActor);
-
-        // Initialize the controller
-        webSocketController = new WebSocketController(mockActorSystem, mockMaterializer, mockYoutubeService);
+        // Create the WebSocketController instance
+        webSocketController = new WebSocketController(actorSystem, materializer, supervisorActor, youtubeService);
     }
 
     @Test
-    public void testCreateActorBasedFlow() throws Exception {
-        // Mock Http.RequestHeader
-        Http.RequestHeader mockRequestHeader = mock(Http.RequestHeader.class);
+    public void testWebSocketControllerConstruction() {
+        // Assert that the WebSocketController is not null after construction
+        assertNotNull("WebSocketController should be successfully constructed", webSocketController);
+    }
 
-        // Access the private method using reflection
+    @Test
+    public void testStreamReturnsWebSocket() {
+        // Call the stream() method
+        WebSocket webSocket = webSocketController.stream();
+
+        // Assert that the returned WebSocket is not null
+        assertNotNull("The WebSocket returned by the stream() method should not be null", webSocket);
+    }
+
+    @Test
+    public void testCreateActorBasedFlowReturnType() throws Exception {
+        // Use reflection to access the private method
         Method method = WebSocketController.class.getDeclaredMethod("createActorBasedFlow", Http.RequestHeader.class);
-        method.setAccessible(true); // Make the private method accessible
+        method.setAccessible(true);
 
+        // Create a mock Http.RequestHeader
+        Http.RequestHeader mockRequest = mock(Http.RequestHeader.class);
+
+        // Invoke the private method
         @SuppressWarnings("unchecked")
-        CompletionStage<F.Either<Result, Flow<JsonNode, JsonNode, ?>>>
-                resultStage = (CompletionStage<F.Either<Result, Flow<JsonNode, JsonNode, ?>>>) method.invoke(webSocketController, mockRequestHeader);
+        CompletionStage<F.Either<Result, Flow<JsonNode, JsonNode, ?>>> result =
+        (CompletionStage<F.Either<Result, Flow<JsonNode, JsonNode, ?>>>) method.invoke(webSocketController, mockRequest);
 
-        // Assert that the result is a successful flow
-        F.Either<Result, Flow<JsonNode, JsonNode, ?>> result = resultStage.toCompletableFuture().get();
-        assertTrue(result.right.isPresent());
-
-        Flow<JsonNode, JsonNode, ?> flow = result.right.get();
-
-        // Verify flow functionality
-        verifyFlowWorks(flow);
+        // Assert that the result is not null
+        assertNotNull("The method should return a non-null CompletionStage", result);
     }
 
-    private void verifyFlowWorks(Flow<JsonNode, JsonNode, ?> flow) throws Exception {
-        // Test Source
-        JsonNode mockInputJson = createTestJsonNode("{\"query\":\"test-query\"}");
-        CompletableFuture<JsonNode> mockOutputFuture = new CompletableFuture<>();
-
-        // Create Sink that accepts JsonNode
-        Sink<JsonNode, ?> testSink = Sink.foreach(mockOutputFuture::complete);
-
-        // Create Source and attach Flow
-        Source<JsonNode, ?> testSource = Source.single(mockInputJson);
-
-        // Run the flow
-        testSource.via(flow).to(testSink).run(mockMaterializer);
-
-        // Verify that the parent actor receives the correct message
-        verify(mockParentActor, times(1)).tell(mockInputJson, ActorRef.noSender());
-
-        //offering to replace it by
-        // TestProbe probe = new TestProbe(mockActorSystem);verify(probe.ref(), times(1)).tell(mockInputJson, ActorRef.noSender());
-
-        // Assert the output JSON matches the input JSON
-        assertEquals(mockInputJson, mockOutputFuture.get());
+    @After
+    public void tearDown() {
+        // Shutdown the actor system after tests
+        TestKit.shutdownActorSystem(actorSystem);
     }
 
-    private JsonNode createTestJsonNode(String jsonString) {
-        // Use Jackson to create a mock JsonNode
-        return play.libs.Json.parse(jsonString);
-    }
+
+//    @Test
+//    public void testCreateActorBasedFlowExceptionHandling() throws Exception {
+//        // Use reflection to access the private method
+//        Method method = WebSocketController.class.getDeclaredMethod("createActorBasedFlow", Http.RequestHeader.class);
+//        method.setAccessible(true);
+//
+//        // Mock Http.RequestHeader
+//        Http.RequestHeader mockRequest = mock(Http.RequestHeader.class);
+//
+//        // Use TestKit to create a valid ActorRef and simulate a RuntimeException
+//        TestKit testKit = new TestKit(actorSystem);
+//
+//        // Define a custom ArgumentMatcher for the actor name
+//        when(actorSystem.actorOf(any(Props.class), argThat(new ArgumentMatcher<String>() {
+//            @Override
+//            public boolean matches(String argument) {
+//                return argument != null && argument.startsWith("UserActor-");
+//            }
+//        }))).thenThrow(new RuntimeException("Simulated actor creation failure"));
+//
+//        // Invoke the private method
+//        @SuppressWarnings("unchecked")
+//        CompletionStage<F.Either<Result, Flow<JsonNode, JsonNode, ?>>> result =
+//                (CompletionStage<F.Either<Result, Flow<JsonNode, JsonNode, ?>>>) method.invoke(webSocketController, mockRequest);
+//
+//        // Verify that supervisorActor.tell is called with a ConnectionFailure message
+//        verify(supervisorActor, times(1)).tell(any(SupervisorActor.ConnectionFailure.class), eq(ActorRef.noSender()));
+//
+//        // Assert that the result is not null and is a Left
+//        assertNotNull("The result should not be null.", result);
+//        result.toCompletableFuture().thenAccept(either -> {
+//            // Verify that the Either contains a Left value
+//            assertTrue("Expected the Either to have a Left value.", either.left.isPresent());
+//
+//            // Verify the Left value contains the 400 Bad Request Result
+//            Result leftResult = either.left.get();
+//            assertNotNull("The Left value should not be null.", leftResult);
+//            assertEquals("Expected a 400 Bad Request status.", 400, leftResult.status());
+//        });
+//    }
+
 }

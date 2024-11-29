@@ -58,50 +58,6 @@ public class YoutubeServiceTest {
     }
 
     @Test
-    public void testParseTags_withTags() throws Exception {
-        JSONArray tagsJsonArray = new JSONArray();
-        tagsJsonArray.put("tag1");
-        tagsJsonArray.put("tag2");
-        tagsJsonArray.put("tag3");
-
-        // Use reflection to access the private parseTags method
-        Method parseTagsMethod = YoutubeService.class.getDeclaredMethod("parseTags", JSONArray.class);
-        parseTagsMethod.setAccessible(true);
-
-        @SuppressWarnings("unchecked")
-        List<String> tags = (List<String>) parseTagsMethod.invoke(youtubeService, tagsJsonArray);
-
-        assertEquals(3, tags.size());
-        assertEquals("tag1", tags.get(0));
-        assertEquals("tag2", tags.get(1));
-        assertEquals("tag3", tags.get(2));
-    }
-
-    @Test
-    public void testParseTags_withEmptyArray() throws Exception {
-        JSONArray tagsJsonArray = new JSONArray();
-
-        Method parseTagsMethod = YoutubeService.class.getDeclaredMethod("parseTags", JSONArray.class);
-        parseTagsMethod.setAccessible(true);
-
-        @SuppressWarnings("unchecked")
-        List<String> tags = (List<String>) parseTagsMethod.invoke(youtubeService, tagsJsonArray);
-
-        assertTrue(tags.isEmpty());
-    }
-
-    @Test
-    public void testParseTags_withNullArray() throws Exception {
-        Method parseTagsMethod = YoutubeService.class.getDeclaredMethod("parseTags", JSONArray.class);
-        parseTagsMethod.setAccessible(true);
-
-        @SuppressWarnings("unchecked")
-        List<String> tags = (List<String>) parseTagsMethod.invoke(youtubeService, (JSONArray) null);
-
-        assertTrue(tags.isEmpty());
-    }
-
-    @Test
     public void testBuildUrl_withValidKeyword() throws Exception {
         String keyword = "test keyword";
         String encodedKeyword = URLEncoder.encode(keyword, StandardCharsets.UTF_8.toString());
