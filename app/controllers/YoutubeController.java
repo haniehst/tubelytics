@@ -66,25 +66,41 @@ public class YoutubeController extends Controller {
         return CompletableFuture.completedFuture(ok(search.render(Helper.reverseMap(cachedResults), readabilityScores)));
     }
 
-    public Result channelProfile(String channelId) {
-        try {
-            Channel channel = youtubeService.getChannelProfile(channelId);
-            if (channel == null) {
-                return notFound("Channel not found");
+
+    /**
+     * Fetches the profile of a YouTube channel and its recent videos asynchronously.
+     * <p>
+     * This method retrieves channel details and the most recent 10 videos uploaded by the channel
+     * using the YouTube service. The operation is performed asynchronously.
+     * </p>
+     *
+     * @param channelId the ID of the YouTube channel
+     * @return a CompletionStage<Result> that renders the channel profile page
+     */
+    public CompletionStage<Result> channelProfile(String channelId) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                // Fetch channel data
+                Channel channel = youtubeService.getChannelProfile(channelId);
+                if (channel == null) {
+                    return notFound("Channel not found");
+                }
+
+                // Fetch last 10 videos for the channel
+                List<Video> recentVideos = youtubeService.searchVideosByChannel(channelId, 10);
+                scala.collection.immutable.List<Video> scalaRecentVideos = CollectionConverters.asScala(
+                        recentVideos != null ? recentVideos : Collections.emptyList()
+                ).toList();
+
+                // Render the response
+                return ok(views.html.channel.render(channel, scalaRecentVideos));
+            } catch (Exception e) {
+                // Handle exceptions and return an error response
+                return notFound("Channel not found due to service error.");
             }
-
-            // Fetch last 10 videos for the channel, handle null video list
-            List<Video> recentVideos = youtubeService.searchVideosByChannel(channelId, 10);
-            scala.collection.immutable.List<Video> scalaRecentVideos = CollectionConverters.asScala(
-                    recentVideos != null ? recentVideos : Collections.emptyList()
-            ).toList();
-
-            return ok(views.html.channel.render(channel, scalaRecentVideos));
-        } catch (Exception e) {
-            // Catch any exception from YoutubeService and return NOT_FOUND with error message
-            return notFound("Channel not found due to service error.");
-        }
+        });
     }
+
 
     /**
      * @param videos
