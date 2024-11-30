@@ -13,11 +13,19 @@ import org.junit.Before;
 import org.junit.Test;
 import play.libs.Json;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
+/**
+ * Test class for ScoreActor.
+ * Verifies the correct processing of score tasks and validates the responses.
+ *
+ * @see ScoreActor
+ * @see MockVideoUtil
+ *
+ * @author Hanieh
+ */
 public class ScoreActorTest {
 
     private ActorSystem system;
@@ -33,6 +41,10 @@ public class ScoreActorTest {
         system = null;
     }
 
+    /**
+     * Test to verify the ScoreActor processes a ScoreTask correctly.
+     * Sends a score task to the actor and verifies the resulting response.
+     */
     @Test
     public void testScoreActorProcessesScoreTask() {
         new TestKit(system) {{
