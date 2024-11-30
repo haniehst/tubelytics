@@ -120,13 +120,14 @@ public class ReadabilityCalculator {
      *
      * @param videos list of Video objects to process
      */
-    public static void calculateReadabilityScores(List<Video> videos) {
+    public static List<Video> calculateReadabilityScores(List<Video> videos) {
         videos.forEach(video -> {
             double gradeLevel = calculateFleschKincaidGradeLevel(video.getDescription());
             double readingEase = calculateFleschReadingEaseScore(video.getDescription());
             video.setFleschKincaidGradeLevel(Math.round(gradeLevel * 100.0) / 100.0);
             video.setFleschReadingEaseScore(Math.round(readingEase * 100.0) / 100.0);
         });
+        return videos;
     }
 
     /**

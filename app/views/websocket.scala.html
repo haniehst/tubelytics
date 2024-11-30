@@ -2,76 +2,130 @@
 
 <style>
     body {
-        font-family: 'Arial', sans-serif;
-        background-color: #f4f4f9;
-        color: #333;
+        font-family: 'Roboto', Arial, sans-serif;
+        background-color: #f9f9f9;
+        color: #212121;
         margin: 0;
         padding: 0;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         min-height: 100vh;
         box-sizing: border-box;
     }
+    header {
+        width: 100%;
+        background-color: #0073e6;
+        color: white;
+        padding: 10px 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    header h1 {
+        font-size: 24px;
+        margin: 0;
+    }
     .search-container {
         width: 100%;
-        max-width: 600px;
-        background-color: #fff;
-        padding: 20px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        max-width: 800px;
+        margin: 20px auto;
         text-align: center;
-        border-radius: 8px;
-        margin: 20px;
-        box-sizing: border-box;
+    }
+    .search-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
     }
     input[type="text"] {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 10px;
+        flex: 1;
+        padding: 12px;
         border: 1px solid #ccc;
         border-radius: 4px;
+        font-size: 16px;
         box-sizing: border-box;
     }
     .button {
-        background-color: #28a745;
+        background-color: #005bb5;
         color: white;
         border: none;
-        padding: 10px 20px;
+        padding: 12px 24px;
         font-size: 16px;
+        font-weight: bold;
         cursor: pointer;
         border-radius: 4px;
-        transition: background-color 0.3s, box-shadow 0.3s;
-        width: 100%;
-        box-sizing: border-box;
+        transition: background-color 0.3s;
     }
     .button:hover {
-        background-color: #218838;
+        background-color: #004a94;
     }
     .results {
         margin-top: 20px;
         text-align: left;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 20px;
     }
-    .results div {
+    .results h3 {
+        font-size: 18px;
+        margin-bottom: 10px;
+        color: #333;
+    }
+    .video {
+        display: flex;
+        gap: 15px;
         margin-bottom: 20px;
     }
-    .results img {
-        max-width: 100%;
-        height: auto;
-        display: block;
-        margin: 0 auto 10px;
+    .video img {
+        width: 120px;
+        height: 90px;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .video-details {
+        flex: 1;
+    }
+    .video-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin: 0 0 5px;
+        color: #333;
+    }
+    .video-description {
+        font-size: 14px;
+        margin: 5px 0;
+        color: #666;
+    }
+    .video-link {
+        font-size: 14px;
+        color: #0073e6;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    .video-link:hover {
+        text-decoration: underline;
+    }
+    .video-meta {
+        font-size: 12px;
+        color: #888;
+        margin-top: 5px;
     }
     hr {
         border: none;
-        border-top: 1px solid #ddd;
+        border-top: 1px solid #eee;
         margin: 10px 0;
     }
 </style>
 
 <div class="search-container">
-    <h1>TubeLytics Search</h1>
-    <input id="searchQuery" type="text" placeholder="Enter your search query" />
-    <button class="button" id="searchButton">Search</button>
+    <div class="search-bar">
+        <input id="searchQuery" type="text" placeholder="Search videos..." />
+        <button class="button" id="searchButton">Search</button>
+    </div>
     <div class="results" id="results"></div>
 </div>
 
@@ -91,17 +145,19 @@
                 const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
                 const videoElement = document.createElement("div");
                 videoElement.innerHTML = `
-                    <div>
-                        <img src="${video.thumbnailUrl}" alt="${video.title}" style="width:120px;height:90px;"><br>
-                        <strong>${video.title}</strong><br>
-                        <a href="${videoUrl}" target="_blank">Watch</a><br>
-                        <small class="channel-link" data-channel-id="${video.channelId}"
-                            style="cursor: pointer; color: blue; text-decoration: underline;">
-                            Channel: ${video.channel}
-                        </small><br>
-                        <p>${video.description}</p>
-                    </div>
-                    <hr>`;
+            <div>
+                <img src="${video.thumbnailUrl}" alt="${video.title}" style="width:120px;height:90px;"><br>
+                <strong>${video.title}</strong><br>
+                <a href="${videoUrl}" target="_blank">Watch</a><br>
+                <small class="channel-link" data-channel-id="${video.channelId}"
+                    style="cursor: pointer; color: blue; text-decoration: underline;">
+                    Channel: ${video.channel}
+                </small><br>
+                <p>${video.description}</p>
+                <p>Flesch-Kincaid Grade Level: ${video.fleschKincaidGradeLevel ?? "N/A"}</p>
+                <p>Flesch Reading Ease Score: ${video.fleschReadingEaseScore ?? "N/A"}</p>
+            </div>
+            <hr>`;
                 resultsDiv.appendChild(videoElement);
             });
         } else {
@@ -163,7 +219,7 @@
         }
     });
 
-        resultsDiv.addEventListener("click", (event) => {
+    resultsDiv.addEventListener("click", (event) => {
         if (event.target?.classList.contains("channel-link")) {
             const channelId = event.target.getAttribute("data-channel-id");
             if (socket.readyState === WebSocket.OPEN) {
