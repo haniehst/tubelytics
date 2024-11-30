@@ -91,7 +91,11 @@ public class UserActor extends AbstractActor {
             clientActor.tell(result, getSelf());
         } else {
             System.err.println("[UserActor] Failed to fetch channel profile.");
-            clientActor.tell(Json.newObject().put("status", "error"), getSelf());
+            clientActor.tell(Json.newObject()
+                            .put("status", "error")
+                            .put("message", "Failed to fetch channel profile. Please try again later."),
+                    getSelf()
+            );
         }
     }
 
