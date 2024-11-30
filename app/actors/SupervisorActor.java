@@ -9,7 +9,17 @@ import java.util.Map;
 import javax.inject.Inject;
 import services.YoutubeService;
 
-
+/**
+ * An Akka supervisor actor responsible for managing user-specific actors
+ * and handling failures in delegated tasks.
+ * <p>
+ * The {@code SupervisorActor} manages {@link UserActor} instances for individual users,
+ * monitors failures in {@link SearchActor} tasks, and provides recovery mechanisms.
+ * It also handles the registration of user actors and maintains a mapping between
+ * user IDs and their corresponding actor references.
+ * </p>
+ * @author Hanieh
+ */
 public class SupervisorActor extends AbstractActor {
     private final Map<String, ActorRef> userActors = new HashMap<>();
     private final YoutubeService youtubeService; // Injected service

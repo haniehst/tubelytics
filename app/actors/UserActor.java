@@ -13,6 +13,14 @@ import actors.ChannelActor;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * An Akka actor responsible for handling user interactions and delegating tasks to other actors.
+ * <p>
+ * The {@code UserActor} interacts with the client, processes user queries, and coordinates
+ * tasks such as video searches, readability score calculations, and channel profile fetching.
+ * </p>
+ * @author Hanieh & Adriana
+ */
 public class UserActor extends AbstractActor {
     private final String userId;
     private final ActorRef supervisorActor;
@@ -62,6 +70,12 @@ public class UserActor extends AbstractActor {
         System.out.println("[UserActor] Client ActorRef registered: " + clientActor);
     }
 
+    /**
+     * Processes client messages and delegates tasks based on the query.
+     *
+     * @param query The {@link ClientMessage} containing the user's query.
+     * @author Hanieh & Adriana
+     */
     private void onClientMessage(ClientMessage query) {
 
         if (query.getQuery().startsWith("search")) {
@@ -80,6 +94,12 @@ public class UserActor extends AbstractActor {
         }
     }
 
+    /**
+     * Processes channel profile responses from the {@link ChannelActor}.
+     *
+     * @param response The response containing the channel profile details.
+     * @author Adriana
+     */
     private void onChannelProfileResponse(ChannelActor.ChannelProfileResponse response) {
         if (response.channel != null) {
             System.out.println("[UserActor] Received channel profile: " + response.channel.getTitle());
@@ -99,11 +119,23 @@ public class UserActor extends AbstractActor {
         }
     }
 
+    /**
+     * Handles search results and delegates them to the {@link ScoreActor}.
+     *
+     * @param result The list of videos returned from the search.
+     * @author Hanieh
+     */
     private void onSearchResult(List<Video> result) {
         System.out.println("[UserActor] Received search results ...");
         scoreActor.tell(new ScoreActor.ScoreTask(result, userId, getSelf()), getSelf());
     }
 
+    /**
+     * Processes readability score results and sends them to the client.
+     *
+     * @param result The result containing readability scores for the videos.
+     * @author Hanieh
+     */
     private void onScoreResult(ObjectNode result) {
         System.out.println("[UserActor] Received score results ...");
 
@@ -116,6 +148,11 @@ public class UserActor extends AbstractActor {
         System.out.println("[UserActor] Sent result to client.");
     }
 
+    /**
+     * Recreates the {@link SearchActor} for the user and resends the last query if available.
+     *
+     * @param message The message indicating that the {@code SearchActor} should be recreated.
+     */
     private void onRecreateSearchActor(SupervisorActor.RecreateSearchActor message) {
         System.out.println("[UserActor] Recreating SearchActor for user: " + userId);
 
@@ -135,10 +172,18 @@ public class UserActor extends AbstractActor {
         }
     }
 
+    /**
+     * Logs and handles unknown messages received by the actor.
+     *
+     * @param message The unknown message.
+     */
     private void onUnknownMessage(Object message) {
         System.err.println("[UserActor] Unknown message received: " + message);
     }
 
+    /**
+     * Represents a message sent by the client to the {@code UserActor}.
+     */
     public static class ClientMessage {
         private final String query;
 
