@@ -9,16 +9,32 @@ import java.util.concurrent.CompletionStage;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Unit tests for the {@link HomeController} class.
+ * <p>
+ * This test class verifies the behavior of methods in {@code HomeController},
+ * such as ensuring the correct return types and verifying non-null responses.
+ * </p>
+ *
+ * @author Hanieh
+ */
 public class HomeControllerTest {
 
     private HomeController homeController;
 
+    /**
+     * Set up the {@code HomeController} instance before each test.
+     */
     @Before
     public void setUp() {
         // Initialize the HomeController
         homeController = new HomeController();
     }
 
+    /**
+     * Test to verify that the {@code index()} method returns a non-null {@link CompletionStage}
+     * containing a {@link Result}.
+     */
     @Test
     public void testIndexReturnType() {
         // Call the index() method
@@ -34,6 +50,10 @@ public class HomeControllerTest {
         });
     }
 
+    /**
+     * Test to verify that the {@code websocketPage()} method returns a non-null {@link CompletionStage}
+     * containing a {@link Result}.
+     */
     @Test
     public void testWebsocketPageReturnType() {
         // Call the websocketPage() method
