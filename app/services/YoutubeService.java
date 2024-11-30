@@ -237,6 +237,7 @@ public class YoutubeService {
                 return new Channel(channelId, title, description, thumbnailUrl, null);
             }
         } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
     }
@@ -266,6 +267,7 @@ public class YoutubeService {
 
                 String videoId = video.optJSONObject("id") != null ? video.getJSONObject("id").optString("videoId", null) : null;
                 if (videoId == null) {
+                    System.out.println("[YoutubeService] Skipping item with missing videoId: " + video.toString());
                     continue;
                 }
 
@@ -279,6 +281,8 @@ public class YoutubeService {
                         description, videoId, channelId, null));
             }
         } catch (Exception e) {
+            System.err.println("[YoutubeService] Error fetching videos: " + e.getMessage());
+            e.printStackTrace();
         }
         return videos;
     }

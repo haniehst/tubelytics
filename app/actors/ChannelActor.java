@@ -3,11 +3,7 @@ package actors;
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import models.Channel;
-import models.Video;
 import services.YoutubeService;
-
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 public class ChannelActor extends AbstractActor {
 
@@ -19,32 +15,36 @@ public class ChannelActor extends AbstractActor {
 
     public ChannelActor(YoutubeService youtubeService) {
         this.youtubeService = youtubeService;
-        System.out.println("[ChannelActor] Initialized with YoutubeService");
     }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(FetchChannelProfile.class, this::onFetchChannelProfile)
+                .match(FetchChannelProfile.class, this::handleFetchChannelProfile)
+                .matchAny(this::onUnknownMessage)
                 .build();
     }
 
-    private void onFetchChannelProfile(FetchChannelProfile message) {
-        System.out.println("[ChannelActor] Received FetchChannelProfile for channelId: " + message.channelId);
+    private void handleFetchChannelProfile(FetchChannelProfile fetchRequest) {
+        System.out.println("[ChannelActor] Received FetchChannelProfile for channelId: "+ fetchRequest.channelId);
 
-        CompletableFuture.supplyAsync(() -> {
-            Channel channel = youtubeService.getChannelProfile(message.channelId);
-            List<Video> videos = youtubeService.searchVideosByChannel(message.channelId, 10);
-            System.out.println("[ChannelActor] Fetched profile: " + channel.getTitle() + ", videos: " + videos.size());
-            return new ChannelProfileResponse(channel, videos);
-        }).thenAccept(response -> {
-            System.out.println("[ChannelActor] Sending response to sender.");
-            getSender().tell(response, getSelf());
-        }).exceptionally(ex -> {
-            System.err.println("[ChannelActor] Error fetching channel profile: " + ex.getMessage());
-            getSender().tell(new ChannelProfileResponse(null, null), getSelf());
-            return null;
-        });
+        try {
+            Channel channel = youtubeService.getChannelProfile(fetchRequest.channelId);
+            if (channel != null) {
+                System.out.println("[ChannelActor] Successfully fetched channel profile: "+ channel.getTitle());
+                getSender().tell(new ChannelProfileResponse(channel, null), getSelf());
+            } else {
+                System.err.println("[ChannelActor] Channel profile is null for channelId: "+ fetchRequest.channelId);
+                getSender().tell(new ChannelProfileResponse(null, "Channel not found."), getSelf());
+            }
+        } catch (Exception e) {
+            System.err.println("[ChannelActor] Error while fetching channel profile: "+ e.getMessage());
+            getSender().tell(new ChannelProfileResponse(null, "Service error: " + e.getMessage()), getSelf());
+        }
+    }
+
+    private void onUnknownMessage(Object message) {
+        System.out.println("[ChannelActor] Received unknown message: "+ message);
     }
 
     public static class FetchChannelProfile {
@@ -57,11 +57,11 @@ public class ChannelActor extends AbstractActor {
 
     public static class ChannelProfileResponse {
         public final Channel channel;
-        public final List<Video> videos;
+        public final String errorMessage;
 
-        public ChannelProfileResponse(Channel channel, List<Video> videos) {
+        public ChannelProfileResponse(Channel channel, String errorMessage) {
             this.channel = channel;
-            this.videos = videos;
+            this.errorMessage = errorMessage;
         }
     }
 }

@@ -178,3 +178,5 @@ server.pid
 .idea
 .bsp
 .g8
+
+test/actors/target

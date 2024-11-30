@@ -170,7 +170,13 @@
     socket.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
-            if (data.status === "success" && data.result?.videos && Array.isArray(data.result.videos)) {
+
+            // Handle the channel details message
+            if (data.status === "success" && data.channelTitle && data.description && data.thumbnailUrl) {
+                displayChannelDetails(data);
+            }
+            // Handle the search results message
+            else if (data.status === "success" && data.result?.videos && Array.isArray(data.result.videos)) {
                 const searchQuery = data.result.searchQuery;
                 appendResults(data.result.videos, searchQuery);
             } else {
@@ -182,6 +188,73 @@
             resultsDiv.innerHTML = "<p>Error processing data.</p>";
         }
     };
+
+    const displayChannelDetails = (data) => {
+        // Create a new tab
+        const newTab = window.open("", "_blank");
+
+        if (newTab) {
+            // Write content to the new tab
+            newTab.document.write(`
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>${data.channelTitle}</title>
+                    <style>
+                        body {
+                            font-family: 'Roboto', Arial, sans-serif;
+                            background-color: #f9f9f9;
+                            color: #212121;
+                            margin: 0;
+                            padding: 20px;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: flex-start;
+                            box-sizing: border-box;
+                        }
+                        .channel-details {
+                            text-align: center;
+                        }
+                        img {
+                            border-radius: 8px;
+                            width: 200px;
+                            height: 200px;
+                            margin-bottom: 20px;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                        }
+                        h1 {
+                            font-size: 24px;
+                            color: #333;
+                            margin-bottom: 10px;
+                        }
+                        p {
+                            font-size: 16px;
+                            color: #555;
+                            line-height: 1.6;
+                            margin: 0;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="channel-details">
+                        <h1>${data.channelTitle}</h1>
+                        <img src="${data.thumbnailUrl}" alt="Channel Thumbnail">
+                        <p>${data.description}</p>
+                    </div>
+                </body>
+                </html>
+            `);
+
+            // Close the document stream for the new tab
+            newTab.document.close();
+        } else {
+            alert("Failed to open a new tab. Please check your browser's popup settings.");
+        }
+    };
+
 
     socket.onopen = () => {
         console.log("WebSocket connection established.");
