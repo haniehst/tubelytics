@@ -3,13 +3,10 @@ package actors;
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import models.Channel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import services.YoutubeService;
 
 public class ChannelActor extends AbstractActor {
 
-    private static final Logger logger = LoggerFactory.getLogger(ChannelActor.class);
     private final YoutubeService youtubeService;
 
     public static Props props(YoutubeService youtubeService) {
@@ -29,25 +26,25 @@ public class ChannelActor extends AbstractActor {
     }
 
     private void handleFetchChannelProfile(FetchChannelProfile fetchRequest) {
-        logger.info("[ChannelActor] Received FetchChannelProfile for channelId: {}", fetchRequest.channelId);
+        System.out.println("[ChannelActor] Received FetchChannelProfile for channelId: "+ fetchRequest.channelId);
 
         try {
             Channel channel = youtubeService.getChannelProfile(fetchRequest.channelId);
             if (channel != null) {
-                logger.info("[ChannelActor] Successfully fetched channel profile: {}", channel.getTitle());
+                System.out.println("[ChannelActor] Successfully fetched channel profile: "+ channel.getTitle());
                 getSender().tell(new ChannelProfileResponse(channel, null), getSelf());
             } else {
-                logger.error("[ChannelActor] Channel profile is null for channelId: {}", fetchRequest.channelId);
+                System.err.println("[ChannelActor] Channel profile is null for channelId: "+ fetchRequest.channelId);
                 getSender().tell(new ChannelProfileResponse(null, "Channel not found."), getSelf());
             }
         } catch (Exception e) {
-            logger.error("[ChannelActor] Error while fetching channel profile: {}", e.getMessage(), e);
+            System.err.println("[ChannelActor] Error while fetching channel profile: "+ e.getMessage());
             getSender().tell(new ChannelProfileResponse(null, "Service error: " + e.getMessage()), getSelf());
         }
     }
 
     private void onUnknownMessage(Object message) {
-        logger.warn("[ChannelActor] Received unknown message: {}", message);
+        System.out.println("[ChannelActor] Received unknown message: "+ message);
     }
 
     public static class FetchChannelProfile {
