@@ -2,10 +2,12 @@ package actors;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.actor.Cancellable;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.Video;
 import play.libs.Json;
+import actors.ScoreActor;
 import services.YoutubeService;
 
 import java.time.Duration;
@@ -16,11 +18,17 @@ import java.util.stream.Collectors;
 public class SearchActor extends AbstractActor {
     private final YoutubeService youtubeService;
     private final ActorRef supervisorActor;
+    private final ActorRef scoreActor;
     private Cancellable scheduler;
 
     public SearchActor(ActorRef supervisorActor, YoutubeService youtubeService) {
         this.supervisorActor = supervisorActor;
         this.youtubeService = youtubeService;
+
+        this.scoreActor = getContext().actorOf(
+                Props.create(ScoreActor.class),
+                "ScoreActor"
+        );
     }
 
     @Override
@@ -36,7 +44,7 @@ public class SearchActor extends AbstractActor {
 
         scheduler = getContext().system().scheduler().scheduleAtFixedRate(
                 Duration.ofSeconds(0), // Initial delay
-                Duration.ofSeconds(30), // Interval between calls
+                Duration.ofSeconds(9000), // Interval between calls
                 () -> {
                     try {
                         // Call the YouTube service and fetch a list of videos
