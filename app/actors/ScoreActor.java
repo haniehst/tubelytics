@@ -12,7 +12,15 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
+/**
+ * An Akka actor responsible for calculating readability scores for video search results.
+ * <p>
+ * The {@code ScoreActor} processes a {@link ScoreTask} containing a list of videos,
+ * calculates readability scores for each video using the {@link ReadabilityCalculator},
+ * and sends the results back to the requesting actor.
+ * </p>
+ * @author Hanieh
+ */
 public class ScoreActor extends AbstractActor {
 
     @Override
@@ -22,6 +30,15 @@ public class ScoreActor extends AbstractActor {
                 .build();
     }
 
+    /**
+     * Handles incoming {@link ScoreTask} messages to calculate readability scores.
+     * <p>
+     * This method processes the video list from the {@code ScoreTask}, calculates the readability
+     * scores for each video, and sends the results back to the requesting actor.
+     * </p>
+     *
+     * @param task The task containing the video list, user ID, and the requesting actor reference.
+     */
     private void onScoreRequest(ScoreTask task) {
         System.out.println("[ScoreActor] Processing calculation for search results.");
 

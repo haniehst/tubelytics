@@ -14,7 +14,15 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
+/**
+ * An Akka actor responsible for performing streaming video searches using the YouTube service.
+ * <p>
+ * The {@code SearchActor} handles {@link SearchTask} messages, interacts with the {@link YoutubeService}
+ * to fetch video search results, and forwards these results to the requesting actor.
+ * It also schedules periodic searches and manages a child {@link ScoreActor} for readability score calculation.
+ * </p>
+ * @author Hanieh
+ */
 public class SearchActor extends AbstractActor {
     private final YoutubeService youtubeService;
     private final ActorRef supervisorActor;
@@ -39,6 +47,15 @@ public class SearchActor extends AbstractActor {
                 .build();
     }
 
+    /**
+     * Performs a streaming search based on the given {@link SearchTask}.
+     * <p>
+     * This method schedules periodic searches for videos using the {@link YoutubeService}
+     * and forwards the search results to the requesting actor.
+     * </p>
+     *
+     * @param task The search task containing the query, user ID, and requesting actor reference.
+     */
     private void performSearch(SearchTask task) {
         System.out.println("[SearchActor] Starting streaming search for query: " + task.getSearchQuery());
 
@@ -73,6 +90,13 @@ public class SearchActor extends AbstractActor {
         System.err.println("[SearchActor] Unknown message received: " + message.getClass());
     }
 
+    /**
+     * A task that encapsulates the data required for performing a video search.
+     * <p>
+     * This class contains the search query, the ID of the user who initiated the request,
+     * and a reference to the actor that will receive the search results.
+     * </p>
+     */
     public static class SearchTask {
         private final String searchQuery;
         private final String userId;
