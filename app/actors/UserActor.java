@@ -57,17 +57,18 @@ public class UserActor extends AbstractActor {
     }
 
     private void onClientMessage(ClientMessage query) {
-        lastQuery = query.getQuery().substring(7).trim();
 
         if (query.getQuery().startsWith("search")) {
+
+            lastQuery = query.getQuery().substring(7).trim();
             System.out.println("[UserActor] User " + userId + " queried: " + query.getQuery());
             searchActor.tell(new SearchActor.SearchTask(lastQuery, userId, getSelf()), getSelf());
         }
 
         else if (query.getQuery().startsWith("chanel")) {
+            String channelQuery = query.getQuery().substring(7).trim();
             System.out.println("[UserActor] User " + userId + " queried: " + query.getQuery());
-            System.out.println("[UserActor] Sending FetchChannelProfile to ChannelActor.");
-            channelActor.tell(new ChannelActor.FetchChannelProfile(lastQuery), getSelf());
+            channelActor.tell(new ChannelActor.FetchChannelProfile(channelQuery), getSelf());
         } else {
             System.err.println("[UserActor] Wrong query parameter: " + query.getQuery());
         }
