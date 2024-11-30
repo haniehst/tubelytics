@@ -266,7 +266,6 @@ public class YoutubeService {
 
                 String videoId = video.optJSONObject("id") != null ? video.getJSONObject("id").optString("videoId", null) : null;
                 if (videoId == null) {
-                    System.out.println("[YoutubeService] Skipping item with missing videoId: ");
                     continue;
                 }
 

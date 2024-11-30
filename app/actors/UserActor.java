@@ -57,9 +57,10 @@ public class UserActor extends AbstractActor {
     }
 
     private void onClientMessage(ClientMessage query) {
+        lastQuery = query.getQuery().substring(7).trim();
+
         if (query.getQuery().startsWith("search")) {
             System.out.println("[UserActor] User " + userId + " queried: " + query.getQuery());
-            lastQuery = query.getQuery().substring(7).trim();
             searchActor.tell(new SearchActor.SearchTask(lastQuery, userId, getSelf()), getSelf());
         }
 
