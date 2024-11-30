@@ -1,4 +1,5 @@
 package actors;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -12,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import play.libs.Json;
 import services.YoutubeService;
+import test.MockVideoUtil;
 
 import java.util.Collections;
 import java.util.List;
@@ -19,6 +21,14 @@ import java.util.List;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 
+/**
+ * Test class for {@link UserActor}.
+ * <p>
+ * This class tests the interaction and functionality of the {@link UserActor}, including handling of client messages,
+ * search results, channel queries, and error handling.
+ * </p>
+ * @author Adriana
+ */
 public class UserActorTest {
 
     private static ActorSystem system;
@@ -48,32 +58,6 @@ public class UserActorTest {
 
             // Expect UserActor to send RegisterUserActor to SupervisorActor
             supervisorActor.expectMsgClass(SupervisorActor.RegisterUserActor.class);
-        }};
-    }
-
-    @Test
-    public void testHandleSearchQueryMessage() {
-        new TestKit(system) {{
-            YoutubeService mockYoutubeService = mock(YoutubeService.class);
-            TestProbe supervisorActor = new TestProbe(system);
-            TestProbe clientActor = new TestProbe(system);
-
-            // Create the UserActor
-            ActorRef userActor = system.actorOf(Props.create(UserActor.class, supervisorActor.ref(), "testUserId", mockYoutubeService));
-
-            // Expect UserActor to send RegisterUserActor to SupervisorActor
-            supervisorActor.expectMsgClass(SupervisorActor.RegisterUserActor.class);
-
-            // Register client actor
-            userActor.tell(clientActor.ref(), getTestActor());
-
-            // Send a search query to the user actor
-            String searchQuery = "search testQuery";
-            UserActor.ClientMessage message = new UserActor.ClientMessage(searchQuery);
-            userActor.tell(message, getTestActor());
-
-            // Expect no immediate response since the UserActor forwards request to SearchActor
-            expectNoMessage();
         }};
     }
 
@@ -119,22 +103,109 @@ public class UserActorTest {
             // Register client actor
             userActor.tell(clientActor.ref(), getTestActor());
 
-            // Mock a successful channel response
-            Channel channel = new Channel("testChannelId", "Test Channel Title", "Test Description", "https://example.com/thumbnail.jpg", null);
-            List<Video> videos = Collections.emptyList();  // You need to provide a list of videos, here it's an empty list.
+            // Mock a successful channel response with videos
+            Channel channel = new Channel("testChannelId", "Test Channel with Videos", "Test Description", "https://example.com/thumbnail.jpg", null);
+            List<Video> videos = Collections.singletonList(MockVideoUtil.mockingVideo("video1"));
             ChannelActor.ChannelProfileResponse response = new ChannelActor.ChannelProfileResponse(channel, videos);
 
             // Send the response to the UserActor
             userActor.tell(response, getTestActor());
 
-            // Verify the client actor receives the success response
+            // Verify the client actor receives the success response with video list
             ObjectNode expectedResponse = Json.newObject()
                     .put("status", "success")
                     .put("channelTitle", channel.getTitle())
                     .put("description", channel.getDescription())
-                    .put("thumbnailUrl", channel.getThumbnailUrl());
+                    .put("thumbnailUrl", channel.getThumbnailUrl())
+                    .set("videos", Json.toJson(videos));
 
             clientActor.expectMsg(expectedResponse);
+        }};
+    }
+
+    @Test
+    public void testOnChannelProfileResponseFailure() {
+        new TestKit(system) {{
+            YoutubeService mockYoutubeService = mock(YoutubeService.class);
+            TestProbe supervisorActor = new TestProbe(system);
+            TestProbe clientActor = new TestProbe(system);
+
+            // Create the UserActor
+            ActorRef userActor = system.actorOf(Props.create(UserActor.class, supervisorActor.ref(), "testUserId", mockYoutubeService));
+
+            // Expect UserActor to send RegisterUserActor to SupervisorActor
+            supervisorActor.expectMsgClass(SupervisorActor.RegisterUserActor.class);
+
+            // Register client actor
+            userActor.tell(clientActor.ref(), getTestActor());
+
+            // Mock a failure channel response (null channel)
+            ChannelActor.ChannelProfileResponse response = new ChannelActor.ChannelProfileResponse(null, Collections.emptyList());
+
+            // Send the response to the UserActor
+            userActor.tell(response, getTestActor());
+
+            // Verify that the client actor receives an error message
+            ObjectNode expectedErrorResponse = Json.newObject()
+                    .put("status", "error")
+                    .put("message", "Failed to fetch channel profile. Please try again later.");
+
+            clientActor.expectMsg(expectedErrorResponse);
+        }};
+    }
+
+    @Test
+    public void testOnClientMessageSearch() {
+        new TestKit(system) {{
+            YoutubeService mockYoutubeService = mock(YoutubeService.class);
+            TestProbe supervisorActor = new TestProbe(system);
+            TestProbe clientActor = new TestProbe(system);
+
+            // Create the UserActor
+            ActorRef userActor = system.actorOf(Props.create(UserActor.class, supervisorActor.ref(), "testUserId", mockYoutubeService));
+
+            // Expect UserActor to send RegisterUserActor to SupervisorActor
+            supervisorActor.expectMsgClass(SupervisorActor.RegisterUserActor.class);
+
+            // Register client actor
+            userActor.tell(clientActor.ref(), getTestActor());
+
+            // Send a search query to the user actor
+            String searchQuery = "search testQuery";
+            UserActor.ClientMessage message = new UserActor.ClientMessage(searchQuery);
+            userActor.tell(message, getTestActor());
+
+            // Expect no immediate response since the UserActor forwards request to SearchActor
+            expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void testOnRecreateSearchActorWithLastQuery() {
+        new TestKit(system) {{
+            YoutubeService mockYoutubeService = mock(YoutubeService.class);
+            TestProbe supervisorActor = new TestProbe(system);
+            TestProbe clientActor = new TestProbe(system);
+
+            // Create the UserActor
+            ActorRef userActor = system.actorOf(Props.create(UserActor.class, supervisorActor.ref(), "testUserId", mockYoutubeService));
+
+            // Expect UserActor to send RegisterUserActor to SupervisorActor
+            supervisorActor.expectMsgClass(SupervisorActor.RegisterUserActor.class);
+
+            // Register client actor
+            userActor.tell(clientActor.ref(), getTestActor());
+
+            // Send a valid search query
+            String searchQuery = "search testQuery";
+            UserActor.ClientMessage searchMessage = new UserActor.ClientMessage(searchQuery);
+            userActor.tell(searchMessage, getTestActor());
+
+            // Send RecreateSearchActor message to recreate the SearchActor
+            userActor.tell(new SupervisorActor.RecreateSearchActor(), getTestActor());
+
+            // Expect the SearchActor to be recreated and receive the last search query
+            expectNoMessage(); // No response directly expected, but ensures recreation didn't cause an issue
         }};
     }
 
@@ -158,4 +229,3 @@ public class UserActorTest {
         }};
     }
 }
-
