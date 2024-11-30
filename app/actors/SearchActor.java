@@ -2,6 +2,7 @@ package actors;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Cancellable;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.Video;
 import play.libs.Json;
@@ -9,13 +10,13 @@ import services.YoutubeService;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 
 public class SearchActor extends AbstractActor {
     private final YoutubeService youtubeService;
     private final ActorRef supervisorActor;
+    private Cancellable scheduler;
 
     public SearchActor(ActorRef supervisorActor, YoutubeService youtubeService) {
         this.supervisorActor = supervisorActor;
@@ -33,10 +34,9 @@ public class SearchActor extends AbstractActor {
     private void performSearch(SearchTask task) {
         System.out.println("[SearchActor] Starting streaming search for query: " + task.getSearchQuery());
 
-        // Schedule a repeating task to fetch results every 5 seconds
-        getContext().system().scheduler().scheduleAtFixedRate(
+        scheduler = getContext().system().scheduler().scheduleAtFixedRate(
                 Duration.ofSeconds(0), // Initial delay
-                Duration.ofSeconds(1000), // Interval between calls
+                Duration.ofSeconds(30), // Interval between calls
                 () -> {
                     try {
                         // Call the YouTube service and fetch a list of videos
@@ -53,11 +53,12 @@ public class SearchActor extends AbstractActor {
                         System.out.println("[SearchActor] Sending search results to UserActor...");
                         // Send results to the requesting actor
                         task.getRequestingActor().tell(searchResult, getSelf());
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         System.err.println("[SearchActor] Error performing search: " + e.getMessage());
-                        supervisorActor.tell(new SupervisorActor.ConnectionFailure("SearchActor", e), getSelf());
-                        // Stop the scheduler on failure
-                        throw new RuntimeException(e);
+                        supervisorActor.tell(new SupervisorActor.SearchActorFailure(task.getUserId(), e), getSelf());
+                        stopScheduler();
+                        //throw new RuntimeException(e);
                     }
                 },
                 getContext().dispatcher() // Execution context
@@ -71,10 +72,12 @@ public class SearchActor extends AbstractActor {
 
     public static class SearchTask {
         private final String searchQuery;
+        private final String userId;
         private final ActorRef requestingActor;
 
-        public SearchTask(String searchQuery, ActorRef requestingActor) {
+        public SearchTask(String searchQuery, String userId, ActorRef requestingActor) {
             this.searchQuery = searchQuery;
+            this.userId = userId;
             this.requestingActor = requestingActor;
         }
 
@@ -84,6 +87,14 @@ public class SearchActor extends AbstractActor {
 
         public ActorRef getRequestingActor() {
             return requestingActor;
+        }
+
+        public String getUserId() {return userId;}
+    }
+
+    private void stopScheduler() {
+        if (scheduler != null && !scheduler.isCancelled()) {
+            scheduler.cancel();
         }
     }
 }

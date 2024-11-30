@@ -7,52 +7,48 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.libs.Json;
 import services.YoutubeService;
+import actors.ChannelActor;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserActor extends AbstractActor {
     private final String userId;
+    private final ActorRef supervisorActor;
+    private final YoutubeService youtubeService;
     private final List<JsonNode> searchHistory = new ArrayList<>();
-    private final ActorRef searchActor;
-    private final ActorRef channelActor; // Ensure channelActor is initialized
+    private ActorRef searchActor;
     private ActorRef clientActor;
-    private String socketId;
+    private final ActorRef channelActor; // Ensure channelActor is initialized
+    private String lastQuery;
 
     public UserActor(ActorRef supervisorActor, String userId, YoutubeService youtubeService) {
         this.userId = userId;
-        System.out.println("[UserActor] Created for userId: " + userId);
+        this.youtubeService = youtubeService;
 
-        // Pass YoutubeService to SearchActor
-        this.searchActor = getContext().actorOf(
-                Props.create(SearchActor.class, supervisorActor, youtubeService),
-                "SearchActor-" + userId
-        );
+        this.supervisorActor = supervisorActor;
+        supervisorActor.tell(new SupervisorActor.RegisterUserActor(userId, getSelf()), getSelf());
+
+        this.searchActor = getContext().actorOf(Props.create(SearchActor.class, supervisorActor, youtubeService), userId + "-SearchActor-" + (10000 + new java.util.Random().nextInt(90000)));
+        System.out.println("[UserActor] Created for userId: " + userId);
 
         // Initialize channelActor
         this.channelActor = getContext().actorOf(
                 ChannelActor.props(youtubeService),
                 "ChannelActor-" + userId
         );
-
-        System.out.println("[UserActor] ChannelActor created for userId: " + userId);
     }
 
     @Override
     public Receive createReceive() {
         return receiveBuilder()
-                .match(SupervisorActor.AssignSocket.class, this::onSocketAssigned)
                 .match(ClientMessage.class, this::onClientMessage)
                 .match(ObjectNode.class, this::onSearchResult)
+                .match(ActorRef.class, this::onClientActorRegistered)
                 .match(ChannelActor.ChannelProfileResponse.class, this::onChannelProfileResponse) // Handle ChannelActor response
-                .match(ActorRef.class, this::onClientActorRegistered) // Handle client actor registration
+                .match(SupervisorActor.RecreateSearchActor.class, this::onRecreateSearchActor)
                 .matchAny(this::onUnknownMessage)
                 .build();
-    }
-
-    private void onSocketAssigned(SupervisorActor.AssignSocket assignSocket) {
-        this.socketId = assignSocket.getSocketId();
-        System.out.println("[UserActor] Socket assigned: " + socketId);
     }
 
     private void onClientActorRegistered(ActorRef actorRef) {
@@ -61,15 +57,17 @@ public class UserActor extends AbstractActor {
     }
 
     private void onClientMessage(ClientMessage query) {
-        String modifiedQuery = query.getQuery().substring(7);
+        lastQuery = query.getQuery().substring(7).trim();
 
         if (query.getQuery().startsWith("search")) {
             System.out.println("[UserActor] User " + userId + " queried: " + query.getQuery());
-            searchActor.tell(new SearchActor.SearchTask(modifiedQuery, getSelf()), getSelf());
-        } else if (query.getQuery().startsWith("chanel")) {
+            searchActor.tell(new SearchActor.SearchTask(lastQuery, userId, getSelf()), getSelf());
+        }
+
+        else if (query.getQuery().startsWith("chanel")) {
             System.out.println("[UserActor] User " + userId + " queried: " + query.getQuery());
             System.out.println("[UserActor] Sending FetchChannelProfile to ChannelActor.");
-            channelActor.tell(new ChannelActor.FetchChannelProfile(modifiedQuery), getSelf());
+            channelActor.tell(new ChannelActor.FetchChannelProfile(lastQuery), getSelf());
         } else {
             System.err.println("[UserActor] Wrong query parameter: " + query.getQuery());
         }
@@ -101,6 +99,29 @@ public class UserActor extends AbstractActor {
         System.out.println("[UserActor] Sent search result to client.");
     }
 
+/*    private void onChannelResult(ObjectNode result) {
+
+    }*/
+
+    private void onRecreateSearchActor(SupervisorActor.RecreateSearchActor message) {
+        System.out.println("[UserActor] Recreating SearchActor for user: " + userId);
+
+        if (searchActor != null) {
+            getContext().stop(searchActor);
+        }
+        searchActor = getContext().actorOf(Props.create(SearchActor.class, supervisorActor, youtubeService), userId + "-SearchActor-" + (10000 + new java.util.Random().nextInt(90000)));
+        //getContext().watch(searchActor);
+
+        if (lastQuery != null) {
+            System.out.println("[UserActor] Resending last query: " + lastQuery);
+            searchActor.tell(new SearchActor.SearchTask(lastQuery, userId, getSelf()), getSelf());
+        }
+
+        else {
+            System.out.println("[UserActor] No previous query to resume for user: " + userId);
+        }
+    }
+
     private void onUnknownMessage(Object message) {
         System.err.println("[UserActor] Unknown message received: " + message);
     }
@@ -117,7 +138,7 @@ public class UserActor extends AbstractActor {
         }
     }
 
-    public static class RegisterClient {
+/*    public static class RegisterClient {
         private final ActorRef clientActor;
 
         public RegisterClient(ActorRef clientActor) {
@@ -127,5 +148,5 @@ public class UserActor extends AbstractActor {
         public ActorRef getClientActor() {
             return clientActor;
         }
-    }
+    }*/
 }

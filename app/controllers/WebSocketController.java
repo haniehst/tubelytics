@@ -71,7 +71,6 @@ public class WebSocketController extends Controller {
                     userActor.tell(new UserActor.ClientMessage(query), ActorRef.noSender());
                 } catch (Exception e) {
                     System.err.println("[WebSocketController] Error processing message: " + e.getMessage());
-                    supervisorActor.tell(new SupervisorActor.ConnectionFailure(userId, e), ActorRef.noSender());
                 }
             });
 
@@ -86,7 +85,6 @@ public class WebSocketController extends Controller {
             return CompletableFuture.completedFuture(F.Either.Right(flow));
         } catch (Exception e) {
             System.err.println("[WebSocketController] Error establishing WebSocket: " + e.getMessage());
-            supervisorActor.tell(new SupervisorActor.ConnectionFailure("UserSession", e), ActorRef.noSender());
             return CompletableFuture.completedFuture(F.Either.Left(Results.badRequest("Unable to establish WebSocket connection.")));
         }
     }

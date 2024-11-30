@@ -2,6 +2,7 @@ package controllers;
 
 import play.mvc.*;
 import javax.inject.Inject;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -54,9 +55,13 @@ public class YoutubeController extends Controller {
             cachedResults.remove(searchQuery);
         } else {
             // Call the YoutubeService for new results
-            videos = youtubeService.searchVideos(searchQuery).stream()
-                    .limit(10) // Limit to the first 10 videos
-                    .collect(Collectors.toList());
+            try {
+                videos = youtubeService.searchVideos(searchQuery).stream()
+                        .limit(10) // Limit to the first 10 videos
+                        .collect(Collectors.toList());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         // Add the query and its results to the front
