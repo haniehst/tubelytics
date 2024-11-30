@@ -44,7 +44,7 @@ public class SearchActor extends AbstractActor {
 
         scheduler = getContext().system().scheduler().scheduleAtFixedRate(
                 Duration.ofSeconds(0), // Initial delay
-                Duration.ofSeconds(9000), // Interval between calls
+                Duration.ofSeconds(1000), // Interval between calls
                 () -> {
                     try {
                         // Call the YouTube service and fetch a list of videos
@@ -53,14 +53,9 @@ public class SearchActor extends AbstractActor {
                                 .limit(10)
                                 .collect(Collectors.toList());
 
-                        // Prepare the search result JSON
-                        ObjectNode searchResult = Json.newObject();
-                        searchResult.put("searchQuery", task.getSearchQuery());
-                        searchResult.set("videos", Json.toJson(videos));
-
                         System.out.println("[SearchActor] Sending search results to UserActor...");
                         // Send results to the requesting actor
-                        task.getRequestingActor().tell(searchResult, getSelf());
+                        task.getRequestingActor().tell(videos, getSelf());
                     }
                     catch (Exception e) {
                         System.err.println("[SearchActor] Error performing search: " + e.getMessage());
