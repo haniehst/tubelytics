@@ -29,7 +29,6 @@ public class YoutubeService {
 
     private final String apiKey;
     private final String searchURL;
-//    private final String videoDetailsURL;
     private final String channelProfileURL;
     private final Integer videoCount;
 
@@ -53,7 +52,6 @@ public class YoutubeService {
 
         this.apiKey = javaConfig.getString("youtube.api.key");
         this.searchURL = javaConfig.getString("youtube.search.url");
-//        this.videoDetailsURL = javaConfig.getString("youtube.videos.url");
         this.channelProfileURL = javaConfig.getString("youtube.channel.profile.url");
         this.videoCount = javaConfig.getInt("video.count");
     }
@@ -69,19 +67,20 @@ public class YoutubeService {
      * @return A list of {@link Video} objects resulting from the search query.
      * @author hanieh
      */
-    public List<Video> searchVideos(String keyword) {
+
+    public List<Video> searchVideos(String keyword) throws IOException {
         List<Video> videos = new ArrayList<>();
         try {
             String urlString = buildUrl(keyword);
             HttpURLConnection conn = createConnection(urlString);
             String jsonResponse = fetchResponse(conn);
             videos = parseVideos(jsonResponse);
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            System.err.println("[YoutubeService] Error fetching videos ...");
+            throw e;
         }
         return videos;
     }
-
 
     /**
      * Builds a URL for searching videos on YouTube based on the given keyword.
@@ -180,7 +179,7 @@ public class YoutubeService {
      * @return A {@link Video} object with the extracted details, or null if the snippet is missing.
      * @author hanieh
      */
-    protected  Video parseVideo(JSONObject videoJson) {
+    protected Video parseVideo(JSONObject videoJson) {
         String videoId = videoJson.optJSONObject("id") != null ? videoJson.getJSONObject("id").optString("videoId", null) : null;
         JSONObject snippet = videoJson.optJSONObject("snippet");
 
@@ -204,77 +203,6 @@ public class YoutubeService {
 
         return new Video(thumbnailUrl, title, channelTitle, description, videoId, channelId, tags);
     }
-
-//    private List<String> parseTags(JSONArray tagsJsonArray) {
-//        List<String> tags = new ArrayList<>();
-//        if (tagsJsonArray != null) {
-//            for (int j = 0; j < tagsJsonArray.length(); j++) {
-//                tags.add(tagsJsonArray.getString(j));
-//            }
-//        }
-//        return tags;
-//    }
-
-    /**
-     * Retrieves video details, including tags, from the YouTube API for a specified video ID.
-     *
-     * This method constructs a URL to fetch video details and parses the JSON response from
-     * the YouTube API. If the video is found, it returns a Video object containing this information;
-     * otherwise, it returns null.
-     *
-     * @param videoId The ID of the video whose details are to be fetched. This should be a valid
-     *                YouTube video ID.
-     * @return A Video object containing the video's details and tags if the video is found;
-     *         otherwise, returns null.*
-     * @author Rafi
-     */
-//    public Video getVideoWithTags(String videoId) {
-//        try {
-//            // Construct video details URL
-//            String videoDetailsUrlString = String.format("%s?part=snippet&id=%s&key=%s",
-//                    this.videoDetailsURL, videoId, this.apiKey);
-//            URL videoDetailsUrl = new URL(videoDetailsUrlString);
-//            HttpURLConnection conn = (HttpURLConnection) videoDetailsUrl.openConnection();
-//            conn.setRequestMethod("GET");
-//
-//            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-//            String inputLine;
-//            StringBuilder response = new StringBuilder();
-//
-//            while ((inputLine = in.readLine()) != null) {
-//                response.append(inputLine);
-//            }
-//            in.close();
-//
-//            // Parse JSON response
-//            JSONObject videoDetailsJson = new JSONObject(response.toString());
-//            JSONArray items = videoDetailsJson.getJSONArray("items");
-//
-//            if (items.length() > 0) {
-//                JSONObject video = items.getJSONObject(0);
-//                JSONObject snippet = video.getJSONObject("snippet");
-//
-//                String title = snippet.getString("title");
-//                String thumbnailUrl = snippet.getJSONObject("thumbnails").getJSONObject("high").getString("url");
-//                String channelId = snippet.getString("channelId");
-//                String channelTitle = snippet.getString("channelTitle");
-//                String description = snippet.getString("description");
-//
-//                List<String> tags = new ArrayList<>();
-//                JSONArray tagsJsonArray = snippet.optJSONArray("tags");
-//                if (tagsJsonArray != null) {
-//                    for (int i = 0; i < tagsJsonArray.length(); i++) {
-//                        tags.add(tagsJsonArray.getString(i));
-//                    }
-//                }
-//
-//                return new Video(thumbnailUrl, title, channelTitle, description, videoId, channelId, tags);
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        return null;
-//    }
 
     /**
      * Retrieves the profile information for a specified YouTube channel.
@@ -309,7 +237,6 @@ public class YoutubeService {
                 return new Channel(channelId, title, description, thumbnailUrl, null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return null;
     }
@@ -339,7 +266,7 @@ public class YoutubeService {
 
                 String videoId = video.optJSONObject("id") != null ? video.getJSONObject("id").optString("videoId", null) : null;
                 if (videoId == null) {
-                    System.out.println("[YoutubeService] Skipping item with missing videoId: " + video.toString());
+                    System.out.println("[YoutubeService] Skipping item with missing videoId: ");
                     continue;
                 }
 
@@ -353,13 +280,7 @@ public class YoutubeService {
                         description, videoId, channelId, null));
             }
         } catch (Exception e) {
-            System.err.println("[YoutubeService] Error fetching videos: " + e.getMessage());
-            e.printStackTrace();
         }
         return videos;
     }
-
-
-
-
 }
