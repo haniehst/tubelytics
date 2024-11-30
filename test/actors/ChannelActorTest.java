@@ -1,120 +1,112 @@
 package actors;
-
-import akka.actor.AbstractActor;
-import akka.actor.Props;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.testkit.javadsl.TestKit;
 import models.Channel;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import services.YoutubeService;
 
+import static org.mockito.Mockito.*;
+import static org.junit.Assert.*;
+
 /**
- * Actor responsible for handling requests to fetch channel profiles.
- * The actor interacts with the {@link YoutubeService} to retrieve data for a given channel.
+ * Unit tests for the {@link ChannelActor} class.
+ * This test class includes scenarios for successful and failed attempts to fetch channel profiles
+ * using a mock {@link YoutubeService}.
+ * <p>
+ * The tests utilize Akka's {@link TestKit} for testing actors and Mockito for mocking dependencies.
+ * </p>
  *
- * Author: Adriana
+ * @author Adriana
  */
-public class ChannelActor extends AbstractActor {
+public class ChannelActorTest {
 
-    private final YoutubeService youtubeService;
+    static ActorSystem system;
 
     /**
-     * Factory method to create a {@link Props} object for creating instances of {@link ChannelActor}.
-     *
-     * @param youtubeService an instance of {@link YoutubeService} used to fetch YouTube channel data.
-     * @return a {@link Props} object for creating the {@link ChannelActor}.
+     * Sets up the actor system used for testing before all tests are run.
      */
-    public static Props props(YoutubeService youtubeService) {
-        return Props.create(ChannelActor.class, () -> new ChannelActor(youtubeService));
+    @BeforeClass
+    public static void setup() {
+        system = ActorSystem.create();
     }
 
     /**
-     * Constructor for {@link ChannelActor}.
-     *
-     * @param youtubeService an instance of {@link YoutubeService} used to fetch YouTube channel data.
+     * Tears down the actor system after all tests are run to release resources.
      */
-    public ChannelActor(YoutubeService youtubeService) {
-        this.youtubeService = youtubeService;
+    @AfterClass
+    public static void teardown() {
+        TestKit.shutdownActorSystem(system);
     }
 
     /**
-     * Defines the behavior of this actor.
-     * The actor listens for {@link FetchChannelProfile} messages and handles them accordingly.
-     *
-     * @return the receive definition containing message handlers.
+     * Tests the scenario where the {@link ChannelActor} successfully fetches a channel profile.
+     * <p>
+     * It mocks the {@link YoutubeService} to return a valid {@link Channel} object when requested.
+     * The test asserts that the response from the actor contains the expected channel details without an error message.
+     * </p>
      */
-    @Override
-    public Receive createReceive() {
-        return receiveBuilder()
-                .match(FetchChannelProfile.class, this::handleFetchChannelProfile)
-                .matchAny(this::onUnknownMessage)
-                .build();
+    @Test
+    public void testFetchChannelProfile_Success() {
+        new TestKit(system) {{
+            // Arrange: Create a mock YoutubeService
+            YoutubeService youtubeService = mock(YoutubeService.class);
+
+            // Mock channel to be returned
+            Channel mockChannel = new Channel(
+                    "testChannelId",
+                    "Test Channel",
+                    "Description",
+                    "ThumbnailUrl"
+            );
+
+            // Mock YoutubeService response
+            when(youtubeService.getChannelProfile("testChannelId")).thenReturn(mockChannel);
+
+            // Act: Create the ChannelActor and send a FetchChannelProfile message
+            ActorRef channelActor = system.actorOf(ChannelActor.props(youtubeService));
+            channelActor.tell(new ChannelActor.FetchChannelProfile("testChannelId"), getRef());
+
+            // Assert: Verify the expected response from the actor
+            ChannelActor.ChannelProfileResponse response = expectMsgClass(ChannelActor.ChannelProfileResponse.class);
+            assertNotNull("Response channel should not be null", response.channel);
+            assertEquals("Channel title should match", "Test Channel", response.channel.getTitle());
+            assertNull("Error message should be null", response.errorMessage);
+
+            // Verify YoutubeService was called once
+            verify(youtubeService, times(1)).getChannelProfile("testChannelId");
+        }};
     }
 
     /**
-     * Handles {@link FetchChannelProfile} requests by fetching the corresponding channel information from {@link YoutubeService}.
-     * If the channel is found, sends a {@link ChannelProfileResponse} containing the channel details back to the sender.
-     * Otherwise, sends an error response.
-     *
-     * @param fetchRequest the {@link FetchChannelProfile} message containing the channel ID to fetch.
+     * Tests the scenario where the {@link ChannelActor} encounters an error while fetching a channel profile.
+     * <p>
+     * It mocks the {@link YoutubeService} to throw a {@link RuntimeException} when the service is called.
+     * The test asserts that the response from the actor contains a null channel and an appropriate error message.
+     * </p>
      */
-    private void handleFetchChannelProfile(FetchChannelProfile fetchRequest) {
-        System.out.println("[ChannelActor] Received FetchChannelProfile for channelId: " + fetchRequest.channelId);
+    @Test
+    public void testFetchChannelProfile_Error() {
+        new TestKit(system) {{
+            // Arrange: Create a mock YoutubeService that throws an exception
+            YoutubeService youtubeService = mock(YoutubeService.class);
+            when(youtubeService.getChannelProfile("testChannelId"))
+                    .thenThrow(new RuntimeException("API failure"));
 
-        try {
-            Channel channel = youtubeService.getChannelProfile(fetchRequest.channelId);
-            if (channel != null) {
-                System.out.println("[ChannelActor] Successfully fetched channel profile: " + channel.getTitle());
-                getSender().tell(new ChannelProfileResponse(channel, null), getSelf());
-            } else {
-                System.err.println("[ChannelActor] Channel profile is null for channelId: " + fetchRequest.channelId);
-                getSender().tell(new ChannelProfileResponse(null, "Channel not found."), getSelf());
-            }
-        } catch (Exception e) {
-            System.err.println("[ChannelActor] Error while fetching channel profile: " + e.getMessage());
-            getSender().tell(new ChannelProfileResponse(null, "Service error: " + e.getMessage()), getSelf());
-        }
-    }
+            // Act: Create the ChannelActor and send a FetchChannelProfile message
+            ActorRef channelActor = system.actorOf(ChannelActor.props(youtubeService));
+            channelActor.tell(new ChannelActor.FetchChannelProfile("testChannelId"), getRef());
 
-    /**
-     * Handles any unknown messages by printing a message to the console.
-     *
-     * @param message the unrecognized message received.
-     */
-    private void onUnknownMessage(Object message) {
-        System.out.println("[ChannelActor] Received unknown message: " + message);
-    }
+            // Assert: Verify the expected response from the actor
+            ChannelActor.ChannelProfileResponse response = expectMsgClass(ChannelActor.ChannelProfileResponse.class);
+            assertNull("Response channel should be null", response.channel);
+            assertTrue("Error message should contain 'Service error'",
+                    response.errorMessage.contains("Service error"));
 
-    /**
-     * Message class representing a request to fetch a channel profile.
-     */
-    public static class FetchChannelProfile {
-        public final String channelId;
-
-        /**
-         * Constructor for {@link FetchChannelProfile}.
-         *
-         * @param channelId the ID of the channel to fetch.
-         */
-        public FetchChannelProfile(String channelId) {
-            this.channelId = channelId;
-        }
-    }
-
-    /**
-     * Message class representing the response of fetching a channel profile.
-     * Contains the {@link Channel} object if the fetch is successful, or an error message otherwise.
-     */
-    public static class ChannelProfileResponse {
-        public final Channel channel;
-        public final String errorMessage;
-
-        /**
-         * Constructor for {@link ChannelProfileResponse}.
-         *
-         * @param channel     the fetched {@link Channel} object, or null if there was an error.
-         * @param errorMessage the error message if the fetch failed, or null if successful.
-         */
-        public ChannelProfileResponse(Channel channel, String errorMessage) {
-            this.channel = channel;
-            this.errorMessage = errorMessage;
-        }
+            // Verify YoutubeService was called once
+            verify(youtubeService, times(1)).getChannelProfile("testChannelId");
+        }};
     }
 }
