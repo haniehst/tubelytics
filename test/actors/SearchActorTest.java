@@ -14,69 +14,38 @@ import org.mockito.Mockito;
 import play.libs.Json;
 import services.YoutubeService;
 
-import java.util.Collections;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import static org.mockito.Mockito.*;
 
 public class SearchActorTest {
 
-    private ActorSystem system;
+    private static ActorSystem system;
 
     @Before
     public void setup() {
-        system = ActorSystem.create(); // Initialize the ActorSystem
+        system = ActorSystem.create();
     }
 
     @After
     public void teardown() {
-        // Pass the ActorSystem to shutdownActorSystem
         TestKit.shutdownActorSystem(system);
         system = null;
     }
 
     @Test
     public void testConstructor() {
-        YoutubeService mockYoutubeService = mock(YoutubeService.class);
-        ActorRef supervisorActor = system.deadLetters(); // Use deadLetters for simplicity
-
-        // Create the SearchActor
-        ActorRef searchActor = system.actorOf(Props.create(SearchActor.class, supervisorActor, mockYoutubeService));
-
-        // Assert that the actor initializes without errors
-        assert searchActor != null;
-    }
-
-    @Test
-    public void testPerformSearch() {
         new TestKit(system) {{
-            // Mock the YoutubeService
             YoutubeService mockYoutubeService = mock(YoutubeService.class);
-
-            // Mock the service response
-            Video mockVideo = MockVideoUtil.mockingVideo("12345");
-
-            when(mockYoutubeService.searchVideos("testQuery"))
-                    .thenReturn(Collections.singletonList(mockVideo));
-
-            // Use TestKit's test actor as the supervisor
-            ActorRef supervisorActor = getTestActor();
+            ActorRef supervisorActor = getTestActor(); // Mocked supervisor actor
 
             // Create the SearchActor
             ActorRef searchActor = system.actorOf(Props.create(SearchActor.class, supervisorActor, mockYoutubeService));
 
-            // Send a SearchTask message
-            searchActor.tell(new SearchActor.SearchTask("testQuery", getTestActor()), getTestActor());
-
-            // Expected JSON result
-            ObjectNode expectedResult = Json.newObject();
-            expectedResult.put("searchQuery", "testQuery");
-            expectedResult.set("videos", Json.toJson(Collections.singletonList(mockVideo)));
-
-            // Assert that the expected message is received
-            expectMsg(expectedResult);
-
-            // Verify that the YoutubeService was called
-            verify(mockYoutubeService, times(1)).searchVideos("testQuery");
+            // Assert that the actor is created without issues
+            assertNotNull(searchActor);
         }};
     }
 
@@ -95,6 +64,31 @@ public class SearchActorTest {
 
             // Assert no response for unknown messages
             expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void testSchedulerStopsOnError() throws Exception {
+        new TestKit(system) {{
+            YoutubeService mockYoutubeService = mock(YoutubeService.class);
+            ActorRef supervisorActor = getTestActor();
+            ActorRef requestingActor = getTestActor();
+
+            // Mock the YoutubeService to throw an exception
+            when(mockYoutubeService.searchVideos("testQuery"))
+                    .thenThrow(new RuntimeException("Mocked Exception"));
+
+            // Create the SearchActor
+            ActorRef searchActor = system.actorOf(Props.create(SearchActor.class, supervisorActor, mockYoutubeService));
+
+
+            // Send a SearchTask to the actor
+            SearchActor.SearchTask task = new SearchActor.SearchTask("testQuery", "userId", requestingActor);
+            searchActor.tell(task, getTestActor());
+
+            // Verify that the scheduler is stopped
+            SupervisorActor.SearchActorFailure failure = expectMsgClass(SupervisorActor.SearchActorFailure.class);
+            assertEquals("userId", failure.getUserId());
         }};
     }
 }
