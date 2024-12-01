@@ -136,35 +136,49 @@
     const socket = new WebSocket("@routes.WebSocketController.stream()");
 
     const appendResults = (videos, searchQuery) => {
+    // Create a container for this query and its results
+        const queryContainer = document.createElement("div");
+        queryContainer.classList.add("query-container");
+        queryContainer.style.border = "1px solid #ddd";
+        queryContainer.style.margin = "20px 0";
+        queryContainer.style.padding = "15px";
+        queryContainer.style.borderRadius = "8px";
+        queryContainer.style.backgroundColor = "#f7f7f7";
+
+        // Add the search query header
         const searchQueryHeader = document.createElement("h3");
         searchQueryHeader.textContent = `Results for: ${searchQuery}`;
-        resultsDiv.appendChild(searchQueryHeader);
+        queryContainer.appendChild(searchQueryHeader);
 
         if (videos && Array.isArray(videos)) {
             videos.forEach((video) => {
                 const videoUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
                 const videoElement = document.createElement("div");
+                videoElement.classList.add("video");
                 videoElement.innerHTML = `
-            <div>
-                <img src="${video.thumbnailUrl}" alt="${video.title}" style="width:120px;height:90px;"><br>
-                <strong>${video.title}</strong><br>
-                <a href="${videoUrl}" target="_blank">Watch</a><br>
-                <small class="channel-link" data-channel-id="${video.channelId}"
-                    style="cursor: pointer; color: blue; text-decoration: underline;">
-                    Channel: ${video.channel}
-                </small><br>
-                <p>${video.description}</p>
-                <p>Flesch-Kincaid Grade Level: ${video.fleschKincaidGradeLevel ?? "N/A"}</p>
-                <p>Flesch Reading Ease Score: ${video.fleschReadingEaseScore ?? "N/A"}</p>
-            </div>
-            <hr>`;
-                resultsDiv.appendChild(videoElement);
+                    <div>
+                        <img src="${video.thumbnailUrl}" alt="${video.title}" style="width:120px;height:90px;"><br>
+                        <strong>${video.title}</strong><br>
+                        <a href="${videoUrl}" target="_blank">Watch</a><br>
+                        <small class="channel-link" data-channel-id="${video.channelId}"
+                            style="cursor: pointer; color: blue; text-decoration: underline;">
+                            Channel: ${video.channel}
+                        </small><br>
+                        <p>${video.description}</p>
+                        <p>Flesch-Kincaid Grade Level: ${video.fleschKincaidGradeLevel ?? "N/A"}</p>
+                        <p>Flesch Reading Ease Score: ${video.fleschReadingEaseScore ?? "N/A"}</p>
+                    </div>
+                `;
+                queryContainer.appendChild(videoElement);
             });
         } else {
             const noVideosMessage = document.createElement("p");
             noVideosMessage.textContent = "No videos found for this query.";
-            resultsDiv.appendChild(noVideosMessage);
+            queryContainer.appendChild(noVideosMessage);
         }
+
+        // Add this query container to the results section
+        resultsDiv.appendChild(queryContainer);
     };
 
     socket.onmessage = (event) => {

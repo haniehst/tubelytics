@@ -10,8 +10,8 @@ import services.YoutubeService;
 import models.Video;
 import actors.ChannelActor;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * An Akka actor responsible for handling user interactions and delegating tasks to other actors.
@@ -25,7 +25,8 @@ public class UserActor extends AbstractActor {
     private final String userId;
     private final ActorRef supervisorActor;
     private final YoutubeService youtubeService;
-    private final List<JsonNode> searchHistory = new ArrayList<>();
+    private final List<String> searchHistory = new ArrayList<>();
+    protected Set<String> videoIdSet = new HashSet<>();
     private ActorRef searchActor;
     private ActorRef scoreActor;
     private ActorRef clientActor;
@@ -81,6 +82,8 @@ public class UserActor extends AbstractActor {
         if (query.getQuery().startsWith("search")) {
 
             lastQuery = query.getQuery().substring(7).trim();
+            // add query to user history
+            searchHistory.add(lastQuery);
             System.out.println("[UserActor] User " + userId + " queried: " + query.getQuery());
             searchActor.tell(new SearchActor.SearchTask(lastQuery, userId, getSelf()), getSelf());
         }
@@ -127,7 +130,13 @@ public class UserActor extends AbstractActor {
      */
     private void onSearchResult(List<Video> result) {
         System.out.println("[UserActor] Received search results ...");
-        scoreActor.tell(new ScoreActor.ScoreTask(result, userId, getSelf()), getSelf());
+
+        // Filter the results using a stream
+        List<Video> filteredResult = result.stream()
+                .filter(video -> videoIdSet.add(video.getVideoId())) // Add to the set and filter unique IDs
+                .collect(Collectors.toList());
+
+        scoreActor.tell(new ScoreActor.ScoreTask(filteredResult, userId, getSelf()), getSelf());
     }
 
     /**
