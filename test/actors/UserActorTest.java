@@ -5,14 +5,20 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import models.Channel;
 import models.Video;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 import play.libs.Json;
+
 import services.YoutubeService;
+
 import test.MockVideoUtil;
 
 import java.util.Collections;
@@ -20,6 +26,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
+
 
 /**
  * Test class for {@link UserActor}.
