@@ -11,6 +11,12 @@ import services.YoutubeService;
 
 import static org.mockito.Mockito.mock;
 
+/**
+ * Test class for SupervisorActor.
+ * It ensures the correct behavior of the SupervisorActor in registering user actors and handling failures.
+ *
+ * @author Adriana
+ */
 public class SupervisorActorTest {
 
     private static ActorSystem system;
