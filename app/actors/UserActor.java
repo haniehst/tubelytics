@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
  * The {@code UserActor} interacts with the client, processes user queries, and coordinates
  * tasks such as video searches, readability score calculations, and channel profile fetching.
  * </p>
- * @author Hanieh & Adriana
+ * @author Hanieh and Adriana
  */
 public class UserActor extends AbstractActor {
     private final String userId;

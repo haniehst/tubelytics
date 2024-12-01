@@ -24,11 +24,21 @@ public class SupervisorActor extends AbstractActor {
     private final Map<String, ActorRef> userActors = new HashMap<>();
     private final YoutubeService youtubeService; // Injected service
 
+    /**
+     * Constructs a {@code SupervisorActor} with the specified {@link YoutubeService}.
+     *
+     * @param youtubeService the YouTube service to be injected
+     */
     @Inject
     public SupervisorActor(YoutubeService youtubeService) {
         this.youtubeService = youtubeService;
     }
 
+    /**
+     * Defines the actor's behavior by specifying message handlers.
+     *
+     * @return a {@link Receive} object defining the actor's behavior
+     */
     @Override
     public Receive createReceive() {
         return receiveBuilder()
@@ -38,10 +48,20 @@ public class SupervisorActor extends AbstractActor {
                 .build();
     }
 
+    /**
+     * Handles a {@link RegisterUserActor} message by registering a user actor.
+     *
+     * @param message the {@code RegisterUserActor} message containing user information
+     */
     private void onRegisterUserActor(RegisterUserActor message) {
         registerUserActor(message.getUserId(), message.getUserActor());
     }
 
+    /**
+     * Handles a {@link SearchActorFailure} message by attempting to recreate the search actor.
+     *
+     * @param failure the {@code SearchActorFailure} message containing failure details
+     */
     private void onSearchActorFailure(SearchActorFailure failure) {
         System.err.println("[SupervisorActor] Search Actor Failed for userId: " + failure.getUserId());
         String userId = failure.getUserId();
@@ -65,10 +85,19 @@ public class SupervisorActor extends AbstractActor {
         }
     }
 
+    /**
+     * Prints unknown messages sent to this actor.
+     *
+     * @param message the unknown message
+     */
     private void onUnknownMessage(Object message) {
         System.err.println("[SupervisorActor] Unknown message received: " + message);
     }
 
+    /**
+     * Registers a user actor by mapping the specified user ID to the provided actor reference.
+     *
+     */
     public static class RegisterUserActor {
         private final String userId;
         private final ActorRef userActor;

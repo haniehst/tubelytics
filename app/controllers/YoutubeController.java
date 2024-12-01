@@ -79,7 +79,7 @@ public class YoutubeController extends Controller {
      * </p>
      *
      * @param channelId the ID of the YouTube channel
-     * @return a CompletionStage<Result> that renders the channel profile page
+     * @return a CompletionStage that renders the channel profile page
      */
     public CompletionStage<Result> channelProfile(String channelId) {
         return CompletableFuture.supplyAsync(() -> {
