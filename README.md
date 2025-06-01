@@ -1,6 +1,14 @@
 # Advanced Programming Practices: TubeLytics
 
-Welcome to the **Advanced Programming Practices** course project by **Team 400 Bad Request** (Divided)! This repository contains the implementation and documentation of the **second version** of the project.
+This project is a Java-based application designed to enhance the way users search, explore, and understand content from YouTube. It leverages the YouTube Data API to fetch video information, offers real-time updates, and provides unique insights into video readability and channel content.
+
+## Features
+1. **Intelligent Video Search**: Search YouTube for videos based on specific queries and display comprehensive information for each relevant post.
+2. **Real-time Data Updates**: Utilizes socket programming to provide live updates, instantly reflecting new video uploads related to active searches without requiring a manual refresh.
+3. **Content Readability Scoring**: Calculates readability scores for video descriptions, offering quick insights into the complexity and accessibility of the content.
+4. **Channel Navigation & Recent Videos**: Seamlessly navigate from individual videos to their respective channels to view the most recent uploads.
+5. **Sentiment Analysis (Advanced)**: Analyzes the sentiment of video descriptions, providing an additional layer of insight into content tone.
+
 
 
 ## Installation
